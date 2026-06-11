@@ -80,6 +80,11 @@
     }
     if (kayit.guncellendi !== sonCekilen) {
       sonCekilen = kayit.guncellendi;
+      // koruma: buluttaki BOŞ defter, dolu yerel defteri ezmesin — tersine taşı
+      if (!(kayit.veri && kayit.veri.kisiler && kayit.veri.kisiler.length) && Store.kisiler().length) {
+        await Bulut.veriGonder(Store.ham());
+        return;
+      }
       if (Store.disYukle(kayit.veri)) {
         if (durum.acikKisiId) cizDetay(); else cizAna();
       }

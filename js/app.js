@@ -61,6 +61,7 @@
     const el = $("#senkronDurum");
     el.hidden = !metin;
     el.textContent = metin || "";
+    $("#bugunTarih").hidden = Boolean(metin); // dar ekranda başlık sıkışmasın
   }
   function degisiklikGonder() {
     clearTimeout(gonderSayac);

@@ -26,7 +26,12 @@
       <span class="marka-sag">
         <span class="senkron" id="senkronDurum" hidden></span>
         <span class="tarih" id="bugunTarih"></span>
-        <button type="button" class="cikis" id="cikisBtn">Çıkış</button>
+        <button type="button" class="cikis" id="cikisBtn">
+          Çıkış
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M6 3H3v10h3M10 11l3-3-3-3M13 8H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
       </span>
     </header>
 
@@ -62,9 +67,25 @@
     </div>
 
     <div class="disa">
-      <button type="button" class="btn-metin" id="ozetBtn">Kişi bazlı özet</button>
-      <button type="button" class="btn-metin" id="csvBtn">Dışa aktar (CSV)</button>
-      <button type="button" class="btn-metin" id="sifreBtn">Şifre değiştir</button>
+      <button type="button" class="arac" id="ozetBtn">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M3 13.5V9M8 13.5V2.5M13 13.5V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Kişi bazlı özet
+      </button>
+      <button type="button" class="arac" id="csvBtn">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M8 2v7.5M4.8 6.8L8 10l3.2-3.2M3 13.5h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Dışa aktar (CSV)
+      </button>
+      <button type="button" class="arac" id="sifreBtn">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="5" cy="8" r="2.6" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M7.6 8h6M11 8v2.6M13.6 8v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        Şifre değiştir
+      </button>
     </div>
   </main>
 

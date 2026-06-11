@@ -87,15 +87,20 @@ body{
 /* ============ 4. Üst kimlik ============ */
 header.marka{display:flex;align-items:baseline;justify-content:space-between;padding:20px 0 4px}
 header.marka h1{font-family:var(--baslik);font-weight:700;font-size:1.15rem;letter-spacing:-.01em}
-.marka-sag{display:flex;align-items:baseline;gap:14px}
+.marka-sag{display:flex;align-items:center;gap:12px}
 header.marka .tarih{font-family:var(--rakam);font-size:.78rem;color:var(--soluk)}
 .senkron{font:600 .72rem var(--govde);color:var(--soluk)}
 .cikis{
-  background:none;border:0;cursor:pointer;color:var(--soluk);
-  font:600 .8rem var(--govde);text-decoration:underline;text-underline-offset:3px;
-  min-height:var(--dokunma);padding:0 4px;
+  display:inline-flex;align-items:center;gap:7px;
+  background:#fff;border:1px solid var(--cizgi-koyu);border-radius:99px;
+  min-height:var(--dokunma);padding:8px 16px;cursor:pointer;
+  font:600 .8rem var(--govde);color:var(--soluk);
+  transition:color .15s ease-out,border-color .15s ease-out,transform .12s ease-out;
+  -webkit-tap-highlight-color:transparent;
 }
-.cikis:hover{color:var(--murekkep)}
+.cikis svg{flex-shrink:0}
+.cikis:hover{color:var(--murekkep);border-color:var(--murekkep)}
+.cikis:active{transform:scale(.96)}
 
 /* ============ 5. Net durum bloğu (imza: çift çizgi toplam) ============ */
 .netblok{padding:28px 0 22px;border-bottom:1px solid var(--cizgi)}
@@ -161,14 +166,20 @@ header.marka .tarih{font-family:var(--rakam);font-size:.78rem;color:var(--soluk)
 .rozet.gecmis{background:var(--borc-zemin);color:var(--borc)}
 .rozet.yakin{background:var(--uyari-zemin);color:var(--uyari)}
 
-/* ============ 7b. Dışa aktarma ============ */
-.disa{padding:18px 0 0;display:flex;justify-content:center}
-.btn-metin{
-  background:none;border:0;cursor:pointer;color:var(--soluk);
-  font:600 .8rem var(--govde);text-decoration:underline;text-underline-offset:3px;
-  min-height:var(--dokunma);padding:0 8px;
+/* ============ 7b. Defter araçları (özet / dışa aktar / şifre) ============ */
+.disa{padding:26px 0 0;display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.arac{
+  display:inline-flex;align-items:center;gap:8px;
+  min-height:var(--dokunma);padding:10px 18px;
+  background:#fff;border:1px solid var(--cizgi-koyu);border-radius:99px;
+  font:600 .85rem var(--govde);color:var(--murekkep);cursor:pointer;
+  transition:border-color .15s ease-out,box-shadow .15s ease-out,transform .12s ease-out;
+  -webkit-tap-highlight-color:transparent;
 }
-.btn-metin:hover{color:var(--murekkep)}
+.arac svg{color:var(--soluk);flex-shrink:0;transition:color .15s ease-out}
+.arac:hover{border-color:var(--murekkep);box-shadow:0 2px 8px rgba(26,28,30,.06)}
+.arac:hover svg{color:var(--murekkep)}
+.arac:active{transform:scale(.97)}
 
 /* ============ 8. Boş durumlar ============ */
 .bos{padding:56px 12px;text-align:center;color:var(--soluk)}

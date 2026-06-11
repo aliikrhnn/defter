@@ -157,5 +157,54 @@ const UI = (() => {
     return true;
   }
 
-  return { anaCiz, detayCiz, para };
+  /* ---------- Kişi bazlı özet (çubuk grafik + tablo) ---------- */
+  function ozetCiz() {
+    const satirlar = Store.kisiler()
+      .map(k => {
+        const net = Store.kisiNet(k);
+        return { ad: k.ad, net, alacak: net > 0 ? net : 0, borc: net < 0 ? -net : 0 };
+      })
+      .sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
+
+    $("#ozetBos").hidden = satirlar.length > 0;
+    document.querySelector(".ozet-tablo").hidden = !satirlar.length;
+    document.querySelectorAll(".ozet-altbaslik").forEach(b => b.hidden = !satirlar.length);
+
+    const enBuyuk = Math.max(1, ...satirlar.map(s => Math.abs(s.net)));
+    const ul = $("#ozetCubuk");
+    ul.innerHTML = "";
+    for (const s of satirlar) {
+      const sinif = s.net > 0 ? "poz" : s.net < 0 ? "neg" : "notr";
+      const li = document.createElement("li");
+      li.innerHTML = `
+        <span class="c-ad"></span>
+        <span class="c-bar" aria-hidden="true"><span class="c-dolgu ${sinif}"></span></span>
+        <span class="c-tutar ${sinif}"></span>`;
+      li.querySelector(".c-ad").textContent = s.ad;
+      li.querySelector(".c-dolgu").style.setProperty("--olcek", (Math.abs(s.net) / enBuyuk).toFixed(3));
+      li.querySelector(".c-tutar").textContent = para(s.net);
+      ul.appendChild(li);
+    }
+
+    const govde = $("#ozetGovde");
+    govde.innerHTML = "";
+    let topAlacak = 0, topBorc = 0;
+    for (const s of satirlar) {
+      topAlacak += s.alacak; topBorc += s.borc;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <th scope="row"></th>
+        <td class="y">${s.alacak ? para(s.alacak) : "—"}</td>
+        <td class="k">${s.borc ? para(s.borc) : "—"}</td>
+        <td class="${s.net > 0 ? "y" : s.net < 0 ? "k" : ""}">${para(s.net)}</td>`;
+      tr.querySelector("th").textContent = s.ad;
+      govde.appendChild(tr);
+    }
+    $("#ozetTopAlacak").textContent = para(topAlacak);
+    $("#ozetTopBorc").textContent = para(topBorc);
+    $("#ozetTopNet").textContent = para(topAlacak - topBorc);
+    $("#ozetTopNet").className = topAlacak - topBorc > 0 ? "y" : topAlacak - topBorc < 0 ? "k" : "";
+  }
+
+  return { anaCiz, detayCiz, ozetCiz, para };
 })();

@@ -243,7 +243,7 @@ dialog::backdrop{background:rgba(26,28,30,.45);animation:perdeGir .25s ease-out}
 .alan{margin-bottom:16px}
 .alan label{display:block;font-weight:600;font-size:.86rem;margin-bottom:6px}
 .alan .ipucu{font-weight:400;color:var(--soluk)}
-.alan input,.alan textarea{
+.alan input,.alan textarea,.alan select{
   width:100%;min-height:var(--dokunma);padding:11px 14px;
   border:1px solid var(--cizgi-koyu);border-radius:var(--r);
   background:#fff;font:inherit;color:inherit;
@@ -263,6 +263,49 @@ fieldset.yontur legend{font-weight:600;font-size:.86rem;margin-bottom:6px}
 .yon-secim label:has(input:focus-visible){outline:3px solid var(--murekkep);outline-offset:2px}
 .form-eylem{display:flex;gap:10px;margin-top:20px}
 .form-eylem .btn{flex:1}
+
+/* ============ 12b. Özet görünümü: çubuklar + tablo ============ */
+.ozet-altbaslik{
+  font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--soluk);padding:22px 0 10px;
+}
+.cubuklar{list-style:none}
+.cubuklar li{
+  display:grid;grid-template-columns:minmax(72px,30%) 1fr auto;gap:12px;
+  align-items:center;padding:9px 0;border-bottom:1px solid var(--cizgi);
+}
+.cubuklar .c-ad{font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cubuklar .c-bar{display:block;height:10px;background:#F2F1ED;border-radius:99px;overflow:hidden}
+.cubuklar .c-dolgu{
+  display:block;height:100%;width:100%;border-radius:99px;
+  transform:scaleX(var(--olcek,0));transform-origin:left center;
+  transition:transform .45s cubic-bezier(.16,1,.3,1);
+}
+.cubuklar .c-dolgu.poz{background:var(--alacak)}
+.cubuklar .c-dolgu.neg{background:var(--borc)}
+.cubuklar .c-dolgu.notr{background:var(--cizgi-koyu)}
+.cubuklar .c-tutar{font-family:var(--rakam);font-weight:600;font-size:.88rem;text-align:right}
+.cubuklar .c-tutar.poz{color:var(--alacak)}
+.cubuklar .c-tutar.neg{color:var(--borc)}
+.cubuklar .c-tutar.notr{color:var(--soluk)}
+
+.ozet-tablo{width:100%;border-collapse:collapse;font-size:.88rem}
+.ozet-tablo th,.ozet-tablo td{padding:11px 6px;border-bottom:1px solid var(--cizgi);text-align:right}
+.ozet-tablo th[scope="col"]:first-child,
+.ozet-tablo th[scope="row"]{text-align:left;font-weight:600;overflow-wrap:anywhere}
+.ozet-tablo thead th{
+  font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--soluk);border-bottom:1px solid var(--cizgi-koyu);
+}
+.ozet-tablo td{font-family:var(--rakam)}
+.ozet-tablo td.y{color:var(--alacak)}
+.ozet-tablo td.k{color:var(--borc)}
+.ozet-tablo tfoot th,.ozet-tablo tfoot td{
+  font-weight:700;border-bottom:1px solid var(--murekkep);
+  box-shadow:0 4px 0 -3px var(--murekkep); /* imza: çift çizgi kesin toplam */
+}
+.ozet-tablo tfoot td.y{color:var(--alacak)}
+.ozet-tablo tfoot td.k{color:var(--borc)}
 
 /* ============ 13. Hareket: görünüm geçişleri ve liste girişleri ============
    Yalnızca transform/opacity canlandırılır (kompozitör dostu).

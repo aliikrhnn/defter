@@ -86,7 +86,9 @@
         return;
       }
       if (Store.disYukle(kayit.veri)) {
-        if (durum.acikKisiId) cizDetay(); else cizAna();
+        if (durum.acikKisiId) cizDetay();
+        else if (!$("#ozetGorunum").hidden) UI.ozetCiz();
+        else cizAna();
       }
     }
   }
@@ -106,7 +108,9 @@
   function anaGoster() {
     durum.acikKisiId = null;
     $("#detayGorunum").hidden = true;
+    $("#ozetGorunum").hidden = true;
     $("#anaGorunum").hidden = false;
+    $("#altEylem").hidden = false;
     $("#detayEylemler").hidden = true;
     $("#anaEylemler").hidden = false;
     listeCanlandir($("#kisiListe"));
@@ -117,13 +121,26 @@
   function detayGoster(kisiId) {
     durum.acikKisiId = kisiId;
     $("#anaGorunum").hidden = true;
+    $("#ozetGorunum").hidden = true;
     $("#detayGorunum").hidden = false;
+    $("#altEylem").hidden = false;
     $("#anaEylemler").hidden = true;
     $("#detayEylemler").hidden = false;
     listeCanlandir($("#hareketListe"));
     cizDetay();
     gecisOynat($("#detayGorunum"));
     $("#detayAd").focus();
+    window.scrollTo(0, 0);
+  }
+  function ozetGoster() {
+    durum.acikKisiId = null;
+    $("#anaGorunum").hidden = true;
+    $("#detayGorunum").hidden = true;
+    $("#ozetGorunum").hidden = false;
+    $("#altEylem").hidden = true; // özet salt okunurdur
+    UI.ozetCiz();
+    gecisOynat($("#ozetGorunum"));
+    $("#ozetBaslik").focus();
     window.scrollTo(0, 0);
   }
 
@@ -185,13 +202,31 @@
     borc:  [["borc-verdim", "Borç verdim"], ["borc-aldim", "Borç aldım"]],
     odeme: [["odeme-aldim", "Ödeme aldım"], ["odeme-yaptim", "Ödeme yaptım"]]
   };
-  /* hareket parametresi doluysa form düzenleme modunda açılır ve alanlar dolar. */
-  function hareketFormuAc(mod, hareket) {
+  /* hareket doluysa düzenleme modu; kisiSecimi true ise (ana ekrandan açılış)
+     formda kişi seçici gösterilir ve hareket seçilen kişiye atanır. */
+  function hareketFormuAc(mod, hareket, kisiSecimi) {
     durum.hareketMod = mod;
     durum.duzenlenenHareketId = hareket ? hareket.id : null;
     $("#hFormBaslik").textContent = hareket
       ? "Hareketi düzenle"
       : (mod === "borc" ? "Borç ekle" : "Ödeme ekle");
+
+    const kisiAlan = $("#hKisiAlan");
+    const kisiSec = $("#hKisi");
+    kisiAlan.hidden = !kisiSecimi;
+    kisiSec.required = Boolean(kisiSecimi);
+    kisiSec.innerHTML = "";
+    if (kisiSecimi) {
+      [...Store.kisiler()]
+        .sort((a, b) => a.ad.localeCompare(b.ad, "tr"))
+        .forEach(k => {
+          const sec = document.createElement("option");
+          sec.value = k.id;
+          sec.textContent = k.ad;
+          kisiSec.appendChild(sec);
+        });
+    }
+
     const kutu = $("#yonSecim");
     kutu.innerHTML = "";
     YONLER[mod].forEach(([deger, etiket], i) => {
@@ -220,8 +255,25 @@
   $("#borcEkleBtn").addEventListener("click", () => hareketFormuAc("borc"));
   $("#odemeEkleBtn").addEventListener("click", () => hareketFormuAc("odeme"));
 
+  /* Ana ekrandan borç/ödeme: kişi seçimi zorunlu; hiç kişi yoksa önce kişi ekletilir. */
+  function anaHareket(mod) {
+    if (Store.kisiler().length === 0) {
+      bildir("Önce bir kişi ekle — borç ve ödemeler kişiye işlenir.");
+      $("#kisiForm").reset();
+      kisiDialog.showModal();
+      return;
+    }
+    hareketFormuAc(mod, null, true);
+  }
+  $("#anaBorcBtn").addEventListener("click", () => anaHareket("borc"));
+  $("#anaOdemeBtn").addEventListener("click", () => anaHareket("odeme"));
+
   $("#hareketForm").addEventListener("submit", e => {
     e.preventDefault();
+    /* Hedef kişi: detaydaysak açık kişi, ana ekrandan açıldıysa seçilen kişi */
+    const hedefKisiId = durum.acikKisiId || $("#hKisi").value;
+    const hedefKisi = Store.kisiBul(hedefKisiId);
+    if (!hedefKisi) return;
     const alanlar = {
       tur: new FormData(e.target).get("tur"),
       tutar: parseFloat($("#hTutar").value),
@@ -231,13 +283,15 @@
     };
     const guncellemeydi = Boolean(durum.duzenlenenHareketId);
     const sonuc = guncellemeydi
-      ? Store.hareketGuncelle(durum.acikKisiId, durum.duzenlenenHareketId, alanlar)
-      : Store.hareketEkle(durum.acikKisiId, alanlar);
+      ? Store.hareketGuncelle(hedefKisiId, durum.duzenlenenHareketId, alanlar)
+      : Store.hareketEkle(hedefKisiId, alanlar);
     if (!sonuc) return;
     hareketDialog.close();
     durum.duzenlenenHareketId = null;
-    cizDetay();
-    bildir(guncellemeydi ? "Hareket güncellendi." : "Hareket eklendi.");
+    if (durum.acikKisiId) cizDetay(); else cizAna();
+    bildir(guncellemeydi
+      ? "Hareket güncellendi."
+      : `"${hedefKisi.ad}" defterine işlendi.`);
   });
 
   document.querySelectorAll("[data-kapat]").forEach(b => {
@@ -246,6 +300,8 @@
 
   /* ---------- Diğer etkileşimler ---------- */
   $("#geriBtn").addEventListener("click", anaGoster);
+  $("#ozetBtn").addEventListener("click", ozetGoster);
+  $("#ozetGeriBtn").addEventListener("click", anaGoster);
   $("#kisiSilBtn").addEventListener("click", () => {
     const k = Store.kisiBul(durum.acikKisiId);
     if (!k) return;

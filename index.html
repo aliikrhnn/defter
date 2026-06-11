@@ -62,7 +62,39 @@
     </div>
 
     <div class="disa">
+      <button type="button" class="btn-metin" id="ozetBtn">Kişi bazlı özet</button>
       <button type="button" class="btn-metin" id="csvBtn">Dışa aktar (CSV)</button>
+    </div>
+  </main>
+
+  <!-- ======== ÖZET (kişi bazlı durum) ======== -->
+  <main id="ozetGorunum" hidden>
+    <div class="detay-ust">
+      <button class="geri" id="ozetGeriBtn" aria-label="Listeye dön">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+          <path d="M14 4l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <h2 id="ozetBaslik" tabindex="-1">Kişi bazlı özet</h2>
+    </div>
+
+    <h3 class="ozet-altbaslik">Dağılım</h3>
+    <ul class="cubuklar" id="ozetCubuk"></ul>
+
+    <h3 class="ozet-altbaslik">Döküm</h3>
+    <table class="ozet-tablo">
+      <caption class="gizli">Kişi bazlı borç ve alacak tablosu</caption>
+      <thead>
+        <tr><th scope="col">Kişi</th><th scope="col">Alacak</th><th scope="col">Borç</th><th scope="col">Net</th></tr>
+      </thead>
+      <tbody id="ozetGovde"></tbody>
+      <tfoot>
+        <tr><th scope="row">Toplam</th><td id="ozetTopAlacak"></td><td id="ozetTopBorc"></td><td id="ozetTopNet"></td></tr>
+      </tfoot>
+    </table>
+    <div class="bos" id="ozetBos" hidden>
+      <h2>Henüz veri yok</h2>
+      <p>Kişi ve hareket ekledikçe özet burada oluşur.</p>
     </div>
   </main>
 
@@ -100,7 +132,9 @@
 <!-- ======== ALT SABİT EYLEMLER ======== -->
 <div class="alt-eylem" id="altEylem" hidden>
   <div class="ic" id="anaEylemler">
-    <button class="btn btn-ana" id="kisiEkleBtn">＋ Kişi ekle</button>
+    <button class="btn btn-cerceve" id="kisiEkleBtn">＋ Kişi</button>
+    <button class="btn btn-kirmizi" id="anaBorcBtn">Borç ekle</button>
+    <button class="btn btn-yesil" id="anaOdemeBtn">Ödeme ekle</button>
   </div>
   <div class="ic" id="detayEylemler" hidden>
     <button class="btn btn-kirmizi" id="borcEkleBtn">Borç ekle</button>
@@ -137,6 +171,11 @@
 <dialog id="hareketDialog" aria-labelledby="hFormBaslik">
   <form class="form" method="dialog" id="hareketForm">
     <h2 id="hFormBaslik">Borç ekle</h2>
+
+    <div class="alan" id="hKisiAlan" hidden>
+      <label for="hKisi">Kişi</label>
+      <select id="hKisi" name="kisi"></select>
+    </div>
 
     <fieldset class="yontur alan">
       <legend>Yön</legend>

@@ -46,8 +46,9 @@ Yeni font ekleme. Yeni renk gerekiyorsa önce buradaki paletten türet ve tabloy
 index.html           Defter görünümleri (ana / detay) + dialoglar + bildirim — oturum yoksa giris.html'e yönlendirir
 giris.html           Giriş sayfası (ayrı sayfa; başarılı girişte index'e yönlendirir)
 css/style.css        Tokenlar + bileşenler (bölüm yorumlarıyla ayrılmış)
-js/store.js          Veri katmanı — localStorage, sürümlü şema (defter-v1), geri al (undo) dahil
-js/auth.js           Giriş kapısı — SHA-256 hash karşılaştırma, sessionStorage oturumu
+js/store.js          Veri katmanı — localStorage önbellek, sürümlü şema, geri al, değişim dinleyicisi
+js/bulut.js          Supabase istemcisi — auth jetonları, yenileme, defter çek/gönder (fetch, bağımlılıksız)
+js/auth.js           Giriş kapısı — Supabase Auth'a delege eder (kullanıcı adı → e-posta eşlemesi)
 js/ui.js             Saf render fonksiyonları (anaCiz, detayCiz) — DOM'a yazar, state tutmaz
 js/app.js            Olay bağlama, görünüm geçişleri, bildirim/geri al, başlatma, SW kaydı
 js/giris.js          Giriş sayfası mantığı (yönlendirme + hata sallanması)
@@ -67,20 +68,30 @@ Kurallar:
 - Şema değişikliğinde `SURUM`'u artır ve `store.js` içine migration yaz; kullanıcı verisini asla sıfırlama.
 - Kullanıcıdan gelen metni DOM'a daima `textContent` ile yaz (XSS).
 
-## Kimlik doğrulama notu
+## Kimlik doğrulama ve bulut senkronu (Supabase)
 
-Giriş tamamen istemci tarafındadır: şifre koda hash olarak gömülü, oturum sessionStorage'da.
-Bu bir **gizlilik perdesi**dir, gerçek güvenlik değildir — kaynak koda bakan biri aşabilir.
-Gerçek güvenlik istenirse backend (örn. Supabase Auth) ekle; `auth.js`'in arayüzünü
-(`girisYapildiMi`, `girisDene`, `cikisYap`) koruyarak içini değiştir.
+- **Auth:** Supabase Auth (proje: `defter-app` / gjuvhhkwenffkuwubvzc). Şifre kodda YOKTUR;
+  sunucuda bcrypt ile saklanır. Kullanıcı adı e-postaya eşlenir:
+  `muratozh` → `muratozh@defter.alegstudio.com`. Oturum localStorage'da kalıcıdır
+  (`defter-bulut-oturum`), jeton süresi dolunca `bulut.js` kendiliğinden yeniler.
+- **Veri:** `public.defter` tablosu — kullanıcı başına tek satır, tüm defter `veri` (jsonb)
+  kolonunda. RLS: yalnız `auth.uid() = user_id` okur/yazar; oturumsuz erişim engellidir.
+- **Senkron modeli:** localStorage önbellektir. Her değişiklik 600ms debounce ile buluta
+  itilir (upsert, **son yazan kazanır**); açılışta, sekme öne gelince ve çevrimiçi olunca
+  çekilir. Bulutta kayıt yoksa yereldeki taşınır. Göstergeler: "Kaydediliyor…" /
+  "Çevrimdışı — yerelde kayıtlı" (`#senkronDurum`).
+- `js/bulut.js` içindeki `ANAHTAR` herkese açık publishable anahtardır — gizli değildir,
+  güvenlik RLS'tedir. Service role anahtarını ASLA istemciye koyma.
+- Yeni dış kaynak = `vercel.json` CSP `connect-src` güncellenmeli.
 
 ## Yol haritası (geliştirmeye açık alanlar)
 
 - ✅ Hareket düzenleme (`Store.hareketGuncelle` + form düzenleme modu)
 - ✅ CSV dışa aktarma (`Store.csvUret` — ";" ayraçlı, BOM'lu, TR Excel uyumlu)
 - ✅ PWA / çevrimdışı destek (`sw.js`, `manifest.webmanifest`)
+- ✅ Supabase ile senkron + gerçek auth (`js/bulut.js`)
 - Taksit / kısmi ödeme planı (hareket şemasına `plan` alanı)
 - PDF dışa aktarma (defter görünümünü koru)
 - Vade bildirimleri (Notification API, izin akışıyla)
 - Çoklu para birimi (`store.js`'e `paraBirimi`, formatlamayı `ui.js`'te merkezi tut)
-- Supabase ile senkron + gerçek auth
+- Çakışma çözümü: "son yazan kazanır" yerine hareket bazlı birleştirme

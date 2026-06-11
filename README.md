@@ -15,16 +15,16 @@ python3 -m http.server 8000
 
 > Not: Giriş ekranı `crypto.subtle` kullanır; bu API `file://`, `localhost` ve `https` üzerinde çalışır. Uzak bir sunucuya koyacaksan HTTPS şart.
 
-## Giriş
+## Giriş ve senkron
 
-Kullanıcı adı ve şifre `js/auth.js` içinde tanımlıdır (şifre SHA-256 hash olarak tutulur).
-Şifreyi değiştirmek için yeni hash üret ve `SIFRE_HASH` sabitini güncelle:
+Kimlik doğrulama **Supabase Auth** iledir — şifre kodda tutulmaz, sunucuda bcrypt ile
+saklanır. Kullanıcı adı e-postaya eşlenir (`muratozh` → `muratozh@defter.alegstudio.com`).
+Şifre değiştirmek için: Supabase Dashboard → Authentication → Users → kullanıcıyı seç →
+"Reset password" (ya da SQL ile `auth.users` üzerinden).
 
-```bash
-node -e "console.log(require('crypto').createHash('sha256').update('YENI_SIFRE').digest('hex'))"
-```
-
-⚠️ Bu istemci tarafı bir kapıdır; cihazı paylaşanlara karşı gizlilik sağlar, gerçek güvenlik sağlamaz. Detay: `CLAUDE.md` → "Kimlik doğrulama notu".
+Defter verisi cihazlar arasında senkronize edilir: localStorage önbellektir, her
+değişiklik buluta itilir, açılışta ve sekme öne gelince buluttan çekilir
+(son yazan kazanır). Çevrimdışıyken yerelde kaydedilir, bağlantı gelince gönderilir.
 
 ## Yapı
 

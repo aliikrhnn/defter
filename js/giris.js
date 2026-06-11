@@ -27,6 +27,9 @@
     if (tamam) {
       location.replace("./");
     } else {
+      hata.textContent = navigator.onLine
+        ? "Kullanıcı adı veya şifre hatalı."
+        : "İnternet bağlantısı yok — giriş için bağlantı gerekli.";
       hata.hidden = false;
       $("#gSifre").value = "";
       $("#gSifre").focus();

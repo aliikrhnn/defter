@@ -86,6 +86,7 @@ header.marka{display:flex;align-items:baseline;justify-content:space-between;pad
 header.marka h1{font-family:var(--baslik);font-weight:700;font-size:1.15rem;letter-spacing:-.01em}
 .marka-sag{display:flex;align-items:baseline;gap:14px}
 header.marka .tarih{font-family:var(--rakam);font-size:.78rem;color:var(--soluk)}
+.senkron{font:600 .72rem var(--govde);color:var(--soluk)}
 .cikis{
   background:none;border:0;cursor:pointer;color:var(--soluk);
   font:600 .8rem var(--govde);text-decoration:underline;text-underline-offset:3px;

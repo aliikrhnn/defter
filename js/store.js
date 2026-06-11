@@ -52,12 +52,28 @@ const Store = (() => {
     return bellek || { surum: SURUM, kisiler: [] };
   }
 
+  /* Her yerel değişiklikte çağrılır (bulut senkronu app.js'te bağlar).
+     disYukle bu dinleyiciyi TETİKLEMEZ — buluttan gelen veri geri itilmesin. */
+  let dinleyici = null;
+  function degisimDinle(fn) { dinleyici = fn; }
+
   function kaydet(v) {
     bellek = v;
     try { localStorage.setItem(ANAHTAR, JSON.stringify(v)); } catch (e) {}
+    if (dinleyici) dinleyici();
   }
 
   let veri = yukle();
+
+  /* Buluttan gelen defteri yerel duruma yükler (dinleyici tetiklenmez). */
+  function disYukle(dis) {
+    if (!dis || !Array.isArray(dis.kisiler)) return false;
+    veri = migrasyon(dis);
+    bellek = veri;
+    try { localStorage.setItem(ANAHTAR, JSON.stringify(veri)); } catch (e) {}
+    return true;
+  }
+  const ham = () => veri;
 
   /* --- Sorgular --- */
   const kisiler = () => veri.kisiler;
@@ -170,6 +186,7 @@ const Store = (() => {
     ISARET, TUR_AD, bugunISO,
     kisiler, kisiBul, kisiNet, sonTarih, vadeDurumu,
     kisiEkle, kisiSil, hareketEkle, hareketGuncelle, hareketSil,
-    kisiGeriAl, hareketGeriAl, csvUret
+    kisiGeriAl, hareketGeriAl, csvUret,
+    degisimDinle, disYukle, ham
   };
 })();

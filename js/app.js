@@ -51,6 +51,41 @@
     if (fn) fn();
   });
 
+  /* ---------- Bulut senkronu ----------
+     Yerel localStorage önbellektir; her değişiklik 600ms sonra buluta
+     itilir (son yazan kazanır), açılışta ve sekme öne gelince çekilir. */
+  let gonderSayac = null;
+  let sonCekilen = null; // buluttan son alınan "guncellendi" damgası
+
+  function senkronGoster(metin) {
+    const el = $("#senkronDurum");
+    el.hidden = !metin;
+    el.textContent = metin || "";
+  }
+  function degisiklikGonder() {
+    clearTimeout(gonderSayac);
+    senkronGoster("Kaydediliyor…");
+    gonderSayac = setTimeout(async () => {
+      const tamam = await Bulut.veriGonder(Store.ham());
+      senkronGoster(tamam ? "" : "Çevrimdışı — yerelde kayıtlı");
+    }, 600);
+  }
+  async function buluttanCek() {
+    const kayit = await Bulut.veriCek();
+    if (kayit === undefined) { senkronGoster("Çevrimdışı — yerelde kayıtlı"); return; }
+    senkronGoster("");
+    if (kayit === null) { // bulutta henüz defter yok: bu cihazdakini taşı
+      await Bulut.veriGonder(Store.ham());
+      return;
+    }
+    if (kayit.guncellendi !== sonCekilen) {
+      sonCekilen = kayit.guncellendi;
+      if (Store.disYukle(kayit.veri)) {
+        if (durum.acikKisiId) cizDetay(); else cizAna();
+      }
+    }
+  }
+
   /* ---------- Geçiş animasyonu yardımcıları ---------- */
   function gecisOynat(el) {
     el.classList.remove("gecis");
@@ -248,6 +283,13 @@
   $("#uygulama").hidden = false;
   $("#altEylem").hidden = false;
   anaGoster();
+
+  Store.degisimDinle(degisiklikGonder);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) buluttanCek();
+  });
+  window.addEventListener("online", buluttanCek);
+  buluttanCek();
 
   /* Çevrimdışı destek — yalnızca güvenli bağlamda (https/localhost) çalışır */
   if ("serviceWorker" in navigator && window.isSecureContext) {

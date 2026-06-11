@@ -1,42 +1,29 @@
 /* =====================================================================
-   auth.js — Giriş kapısı
-   İstemci tarafı doğrulama: gizlilik perdesidir, gerçek güvenlik değildir
-   (kaynak koda erişen biri aşabilir). Gerçek auth için bu modülün
-   arayüzünü koruyarak içini backend'e (örn. Supabase Auth) bağla.
+   auth.js — Giriş kapısı (Supabase Auth)
+   Şifre KODDA TUTULMAZ: doğrulama sunucuda yapılır, şifre Supabase'te
+   bcrypt ile saklanır. Kullanıcı adı e-postaya eşlenir
+   (ör. "muratozh" → muratozh@defter.alegstudio.com).
+   Arayüz korunmuştur: girisYapildiMi, girisDene, cikisYap.
    ===================================================================== */
 "use strict";
 
 const Auth = (() => {
-  const KULLANICI = "muratozh";
-  // SHA-256("M236702") — şifre düz metin olarak kodda tutulmaz
-  const SIFRE_HASH = "db00c733a072d001cc130555c99392ec039194bfa11faf6aa7fedafc6a91d026";
-  const OTURUM_ANAHTAR = "defter-oturum";
-
-  async function sha256(metin) {
-    const veri = new TextEncoder().encode(metin);
-    const ozet = await crypto.subtle.digest("SHA-256", veri);
-    return Array.from(new Uint8Array(ozet))
-      .map(b => b.toString(16).padStart(2, "0")).join("");
-  }
+  const EPOSTA_ALANI = "@defter.alegstudio.com";
 
   function girisYapildiMi() {
-    try { return sessionStorage.getItem(OTURUM_ANAHTAR) === "1"; }
-    catch (e) { return false; }
+    return Bulut.oturumVar();
   }
 
-  /* Başarılıysa true döner ve oturumu açar. */
+  /* Başarılıysa true döner ve oturumu açar (cihazda kalıcı). */
   async function girisDene(kullanici, sifre) {
-    const adDogru = (kullanici || "").trim().toLocaleLowerCase("tr") === KULLANICI;
-    const hash = await sha256(sifre || "");
-    if (adDogru && hash === SIFRE_HASH) {
-      try { sessionStorage.setItem(OTURUM_ANAHTAR, "1"); } catch (e) {}
-      return true;
-    }
-    return false;
+    const ad = (kullanici || "").trim().toLocaleLowerCase("tr");
+    if (!ad || !sifre) return false;
+    const eposta = ad.includes("@") ? ad : ad + EPOSTA_ALANI;
+    return Bulut.girisYap(eposta, sifre);
   }
 
   function cikisYap() {
-    try { sessionStorage.removeItem(OTURUM_ANAHTAR); } catch (e) {}
+    Bulut.cikisYap();
   }
 
   return { girisYapildiMi, girisDene, cikisYap };

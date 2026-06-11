@@ -35,6 +35,9 @@ body{
   min-height:100dvh;
 }
 :focus-visible{outline:3px solid var(--murekkep);outline-offset:2px;border-radius:4px}
+/* hidden özniteliği her display kuralını yener — yoksa display:flex'li
+   bileşenler (alt eylem çubuğu vb.) gizlenmez ve çift düğme hatası doğar */
+[hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
 }

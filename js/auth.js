@@ -26,5 +26,10 @@ const Auth = (() => {
     Bulut.cikisYap();
   }
 
-  return { girisYapildiMi, girisDene, cikisYap };
+  /* Sonuç kodları için bkz. Bulut.sifreDegistir */
+  function sifreDegistir(mevcutSifre, yeniSifre) {
+    return Bulut.sifreDegistir(mevcutSifre, yeniSifre);
+  }
+
+  return { girisYapildiMi, girisDene, cikisYap, sifreDegistir };
 })();

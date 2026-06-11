@@ -64,6 +64,7 @@
     <div class="disa">
       <button type="button" class="btn-metin" id="ozetBtn">Kişi bazlı özet</button>
       <button type="button" class="btn-metin" id="csvBtn">Dışa aktar (CSV)</button>
+      <button type="button" class="btn-metin" id="sifreBtn">Şifre değiştir</button>
     </div>
   </main>
 
@@ -147,6 +148,30 @@
   <span id="bildirimMetin"></span>
   <button type="button" id="bildirimEylem" hidden>Geri al</button>
 </div>
+
+<!-- ======== ŞİFRE DEĞİŞTİRME ======== -->
+<dialog id="sifreDialog" aria-labelledby="sifreBaslik">
+  <form class="form" id="sifreForm" novalidate>
+    <h2 id="sifreBaslik">Şifre değiştir</h2>
+    <div class="alan">
+      <label for="sMevcut">Mevcut şifre</label>
+      <input id="sMevcut" name="mevcut" type="password" required autocomplete="current-password">
+    </div>
+    <div class="alan">
+      <label for="sYeni">Yeni şifre <span class="ipucu">— en az 6 karakter</span></label>
+      <input id="sYeni" name="yeni" type="password" required minlength="6" autocomplete="new-password">
+    </div>
+    <div class="alan">
+      <label for="sTekrar">Yeni şifre (tekrar)</label>
+      <input id="sTekrar" name="tekrar" type="password" required autocomplete="new-password">
+    </div>
+    <p class="giris-hata" id="sifreHata" role="alert" hidden></p>
+    <div class="form-eylem">
+      <button type="button" class="btn btn-cerceve" data-kapat>Vazgeç</button>
+      <button type="submit" class="btn btn-ana" value="kaydet">Kaydet</button>
+    </div>
+  </form>
+</dialog>
 
 <!-- ======== KİŞİ FORMU ======== -->
 <dialog id="kisiDialog" aria-labelledby="kisiFormBaslik">

@@ -298,6 +298,42 @@
     b.addEventListener("click", () => b.closest("dialog").close());
   });
 
+  /* ---------- Şifre değiştirme ---------- */
+  const sifreDialog = $("#sifreDialog");
+  $("#sifreBtn").addEventListener("click", () => {
+    $("#sifreForm").reset();
+    $("#sifreHata").hidden = true;
+    sifreDialog.showModal();
+  });
+  $("#sifreForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const hata = $("#sifreHata");
+    hata.hidden = true;
+    const mevcut = $("#sMevcut").value;
+    const yeni = $("#sYeni").value;
+    const tekrar = $("#sTekrar").value;
+    const goster = m => { hata.textContent = m; hata.hidden = false; };
+    if (yeni.length < 6) { goster("Yeni şifre en az 6 karakter olmalı."); return; }
+    if (yeni !== tekrar) { goster("Yeni şifreler birbirini tutmuyor."); return; }
+    const btn = e.target.querySelector("button[type=submit]");
+    btn.disabled = true;
+    const sonuc = await Auth.sifreDegistir(mevcut, yeni);
+    btn.disabled = false;
+    if (sonuc === "tamam") {
+      sifreDialog.close();
+      bildir("Şifre değiştirildi.");
+    } else if (sonuc === "mevcut") {
+      goster("Mevcut şifre hatalı.");
+      $("#sMevcut").focus();
+    } else if (sonuc === "ayni") {
+      goster("Yeni şifre eskisiyle aynı olamaz.");
+    } else if (sonuc === "oturum") {
+      goster("Oturum doğrulanamadı — çıkıp yeniden giriş yap.");
+    } else {
+      goster("Bağlantı sorunu — internetini kontrol edip tekrar dene.");
+    }
+  });
+
   /* ---------- Diğer etkileşimler ---------- */
   $("#geriBtn").addEventListener("click", anaGoster);
   $("#ozetBtn").addEventListener("click", ozetGoster);

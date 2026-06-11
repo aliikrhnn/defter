@@ -29,7 +29,8 @@ const Bulut = (() => {
     oturumYaz({
       erisim: j.access_token,
       yenileme: j.refresh_token,
-      bitis: Math.floor(Date.now() / 1000) + (j.expires_in || 3600)
+      bitis: Math.floor(Date.now() / 1000) + (j.expires_in || 3600),
+      eposta: (j.user && j.user.email) || (oturumOku() || {}).eposta || null
     });
   }
 
@@ -123,5 +124,49 @@ const Bulut = (() => {
     } catch (e) { return false; }
   }
 
-  return { oturumVar, girisYap, cikisYap, veriCek, veriGonder };
+  /* Oturumdaki e-postayı döner; eski oturumlarda sunucudan alır. */
+  async function epostaGetir() {
+    const o = oturumOku();
+    if (!o) return null;
+    if (o.eposta) return o.eposta;
+    try {
+      const erisim = await tazeErisim();
+      if (!erisim) return null;
+      const r = await fetch(TABAN + "/auth/v1/user", {
+        headers: { "apikey": ANAHTAR, "Authorization": "Bearer " + erisim }
+      });
+      if (!r.ok) return null;
+      const j = await r.json();
+      if (j.email) oturumYaz({ ...oturumOku(), eposta: j.email });
+      return j.email || null;
+    } catch (e) { return null; }
+  }
+
+  /* Şifre değiştirir. Önce mevcut şifre yeniden girişle doğrulanır.
+     Dönüş: "tamam" | "mevcut" (mevcut şifre yanlış) | "ayni" (yeni=eski)
+     | "oturum" | "ag" */
+  async function sifreDegistir(mevcutSifre, yeniSifre) {
+    const eposta = await epostaGetir();
+    if (!eposta) return "oturum";
+    const dogrulandi = await girisYap(eposta, mevcutSifre);
+    if (!dogrulandi) return navigator.onLine ? "mevcut" : "ag";
+    try {
+      const erisim = await tazeErisim();
+      const r = await fetch(TABAN + "/auth/v1/user", {
+        method: "PUT",
+        headers: {
+          "apikey": ANAHTAR,
+          "Authorization": "Bearer " + erisim,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ password: yeniSifre })
+      });
+      if (r.ok) return "tamam";
+      const j = await r.json().catch(() => ({}));
+      const mesaj = (j.msg || j.message || j.error_description || "").toLowerCase();
+      return mesaj.includes("different") ? "ayni" : "ag";
+    } catch (e) { return "ag"; }
+  }
+
+  return { oturumVar, girisYap, cikisYap, veriCek, veriGonder, sifreDegistir };
 })();

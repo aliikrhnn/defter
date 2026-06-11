@@ -17,28 +17,6 @@
 </head>
 <body>
 
-<!-- ======== GİRİŞ GÖRÜNÜMÜ ======== -->
-<main id="girisGorunum" class="giris" hidden>
-  <div class="giris-kutu">
-    <h1 class="giris-marka">Defter</h1>
-    <p class="giris-alt">Kişisel borç &amp; alacak takibi</p>
-
-    <form id="girisForm" novalidate>
-      <div class="alan">
-        <label for="gKullanici">Kullanıcı adı</label>
-        <input id="gKullanici" name="kullanici" type="text" required
-               autocomplete="username" autocapitalize="none" spellcheck="false">
-      </div>
-      <div class="alan">
-        <label for="gSifre">Şifre</label>
-        <input id="gSifre" name="sifre" type="password" required autocomplete="current-password">
-      </div>
-      <p class="giris-hata" id="girisHata" role="alert" hidden>Kullanıcı adı veya şifre hatalı.</p>
-      <button type="submit" class="btn btn-ana giris-btn">Giriş yap</button>
-    </form>
-  </div>
-</main>
-
 <div class="kap" id="uygulama" hidden>
 
   <!-- ======== ANA GÖRÜNÜM ======== -->
@@ -127,6 +105,12 @@
     <button class="btn btn-kirmizi" id="borcEkleBtn">Borç ekle</button>
     <button class="btn btn-yesil" id="odemeEkleBtn">Ödeme ekle</button>
   </div>
+</div>
+
+<!-- ======== BİLDİRİM (geri al destekli) ======== -->
+<div class="bildirim" id="bildirim" role="status" aria-live="polite" hidden>
+  <span id="bildirimMetin"></span>
+  <button type="button" id="bildirimEylem" hidden>Geri al</button>
 </div>
 
 <!-- ======== KİŞİ FORMU ======== -->

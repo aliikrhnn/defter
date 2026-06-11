@@ -15,6 +15,20 @@ const UI = (() => {
   const tarihUzun = iso => new Date(iso + "T00:00:00")
     .toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
 
+  /* Tutar değiştiğinde kısa bir vurgu animasyonu oynatır (mürekkep "tik"i).
+     Metni değil transform'u canlandırır; reduced-motion global kuralla kapanır. */
+  let oncekiTutarlar = {};
+  function tutarYaz(el, deger, metin, sinif) {
+    el.textContent = metin;
+    el.className = sinif;
+    if (oncekiTutarlar[el.id] !== undefined && oncekiTutarlar[el.id] !== deger) {
+      el.classList.remove("vurgu");
+      void el.offsetWidth;
+      el.classList.add("vurgu");
+    }
+    oncekiTutarlar[el.id] = deger;
+  }
+
   /* ---------- Ana görünüm ---------- */
   function anaCiz({ filtre, arama, satirTiklandi }) {
     let alacakT = 0, borcT = 0;
@@ -24,8 +38,7 @@ const UI = (() => {
     }
     const net = alacakT - borcT;
     const netEl = $("#netTutar");
-    netEl.textContent = para(net);
-    netEl.className = "tutar " + (net > 0 ? "poz" : net < 0 ? "neg" : "");
+    tutarYaz(netEl, net, para(net), "tutar " + (net > 0 ? "poz" : net < 0 ? "neg" : ""));
     $("#ozAlacak").textContent = para(alacakT);
     $("#ozBorc").textContent = para(borcT);
 
@@ -51,11 +64,13 @@ const UI = (() => {
       liste.appendChild(li);
     }
 
+    let sira = 0;
     for (const k of goster) {
       const n = Store.kisiNet(k);
       const vd = Store.vadeDurumu(k);
       const son = Store.sonTarih(k);
       const li = document.createElement("li");
+      li.style.setProperty("--i", Math.min(sira++, 12)); // kademeli giriş animasyonu
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "satir " + (n > 0 ? "poz" : n < 0 ? "neg" : "notr");
@@ -94,8 +109,7 @@ const UI = (() => {
 
     const n = Store.kisiNet(k);
     const netEl = $("#detayNet");
-    netEl.textContent = para(Math.abs(n));
-    netEl.className = "tutar " + (n > 0 ? "poz" : n < 0 ? "neg" : "");
+    tutarYaz(netEl, kisiId + ":" + n, para(Math.abs(n)), "tutar " + (n > 0 ? "poz" : n < 0 ? "neg" : ""));
     const ozet = $("#detayOzet");
     ozet.innerHTML = n > 0 ? `<span class="y"><b></b> sana borçlu</span>`
       : n < 0 ? `<span class="k">Sen <b></b> kişisine borçlusun</span>`
@@ -109,9 +123,11 @@ const UI = (() => {
     $("#detayBos").hidden = sirali.length > 0;
 
     const bugun = Store.bugunISO();
+    let sira = 0;
     for (const h of sirali) {
       const isr = Store.ISARET[h.tur];
       const li = document.createElement("li");
+      li.style.setProperty("--i", Math.min(sira++, 12)); // kademeli giriş animasyonu
       li.innerHTML = `
         <time class="gun" datetime="${h.tarih}">${tarihKisa(h.tarih)}</time>
         <span class="orta">

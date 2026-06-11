@@ -29,12 +29,14 @@ node -e "console.log(require('crypto').createHash('sha256').update('YENI_SIFRE')
 ## Yapı
 
 ```
-index.html           Görünümler (giriş / ana liste / kişi detayı) + form dialogları
-css/style.css        Token sistemi + bileşen stilleri
-js/store.js          Veri katmanı (localStorage, sürümlü şema)
+index.html           Defter (ana liste / kişi detayı) + form dialogları — giriş gerektirir
+giris.html           Giriş sayfası (başarılı girişte deftere yönlendirir)
+css/style.css        Token sistemi + bileşen stilleri + animasyonlar
+js/store.js          Veri katmanı (localStorage, sürümlü şema, geri al)
 js/auth.js           Giriş kapısı
 js/ui.js             Render fonksiyonları
-js/app.js            Olaylar, görünüm geçişleri, başlatma
+js/giris.js          Giriş sayfası mantığı
+js/app.js            Olaylar, görünüm geçişleri, bildirim/geri al, başlatma
 sw.js                Çevrimdışı önbellek (PWA)
 manifest.webmanifest PWA manifest'i
 icon.svg             Favicon / uygulama ikonu

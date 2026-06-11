@@ -1,10 +1,16 @@
 /* =====================================================================
    app.js — Başlatma, görünüm geçişleri ve olay bağlama
    Tüm uygulama state'i burada yaşar; render UI'a, veri Store'a delege edilir.
+   Oturum yoksa giris.html'e yönlendirir (giriş ayrı sayfadadır).
    ===================================================================== */
 "use strict";
 
 (() => {
+  if (!Auth.girisYapildiMi()) {
+    location.replace("giris.html");
+    return;
+  }
+
   const $ = s => document.querySelector(s);
 
   /* ---------- Uygulama durumu ---------- */
@@ -16,26 +22,56 @@
     duzenlenenHareketId: null // doluysa hareket formu düzenleme modundadır
   };
 
+  /* ---------- Bildirim (geri al destekli) ---------- */
+  const bildirimKutu = $("#bildirim");
+  const bildirimMetin = $("#bildirimMetin");
+  const bildirimEylem = $("#bildirimEylem");
+  let bildirimSayac = null;
+  let geriAlFn = null;
+
+  function bildir(mesaj, geriAl) {
+    clearTimeout(bildirimSayac);
+    bildirimMetin.textContent = mesaj;
+    geriAlFn = geriAl || null;
+    bildirimEylem.hidden = !geriAl;
+    bildirimKutu.hidden = false;
+    bildirimKutu.classList.remove("goster");
+    void bildirimKutu.offsetWidth; // animasyonu yeniden tetikle
+    bildirimKutu.classList.add("goster");
+    bildirimSayac = setTimeout(bildirimGizle, 6000);
+  }
+  function bildirimGizle() {
+    clearTimeout(bildirimSayac);
+    bildirimKutu.hidden = true;
+    geriAlFn = null;
+  }
+  bildirimEylem.addEventListener("click", () => {
+    const fn = geriAlFn;
+    bildirimGizle();
+    if (fn) fn();
+  });
+
+  /* ---------- Geçiş animasyonu yardımcıları ---------- */
+  function gecisOynat(el) {
+    el.classList.remove("gecis");
+    void el.offsetWidth;
+    el.classList.add("gecis");
+  }
+  function listeCanlandir(ul) {
+    ul.classList.add("canlandir");
+    setTimeout(() => ul.classList.remove("canlandir"), 800);
+  }
+
   /* ---------- Görünüm geçişleri ---------- */
-  function girisGoster() {
-    $("#girisGorunum").hidden = false;
-    $("#uygulama").hidden = true;
-    $("#altEylem").hidden = true;
-    $("#gKullanici").focus();
-  }
-  function uygulamaGoster() {
-    $("#girisGorunum").hidden = true;
-    $("#uygulama").hidden = false;
-    $("#altEylem").hidden = false;
-    anaGoster();
-  }
   function anaGoster() {
     durum.acikKisiId = null;
     $("#detayGorunum").hidden = true;
     $("#anaGorunum").hidden = false;
     $("#detayEylemler").hidden = true;
     $("#anaEylemler").hidden = false;
+    listeCanlandir($("#kisiListe"));
     cizAna();
+    gecisOynat($("#anaGorunum"));
     window.scrollTo(0, 0);
   }
   function detayGoster(kisiId) {
@@ -44,7 +80,9 @@
     $("#detayGorunum").hidden = false;
     $("#anaEylemler").hidden = true;
     $("#detayEylemler").hidden = false;
+    listeCanlandir($("#hareketListe"));
     cizDetay();
+    gecisOynat($("#detayGorunum"));
     $("#detayAd").focus();
     window.scrollTo(0, 0);
   }
@@ -60,10 +98,13 @@
   function cizDetay() {
     const ok = UI.detayCiz(durum.acikKisiId, {
       hareketSilIstendi(h) {
-        if (confirm("Bu hareket silinsin mi?")) {
-          Store.hareketSil(durum.acikKisiId, h.id);
-          cizDetay();
-        }
+        const kisiId = durum.acikKisiId;
+        Store.hareketSil(kisiId, h.id);
+        cizDetay();
+        bildir("Hareket silindi.", () => {
+          Store.hareketGeriAl(kisiId, h);
+          if (durum.acikKisiId === kisiId) cizDetay(); else cizAna();
+        });
       },
       hareketDuzenleIstendi(h) {
         const mod = (h.tur === "borc-verdim" || h.tur === "borc-aldim") ? "borc" : "odeme";
@@ -73,27 +114,10 @@
     if (!ok) anaGoster();
   }
 
-  /* ---------- Giriş ---------- */
-  $("#girisForm").addEventListener("submit", async e => {
-    e.preventDefault();
-    const hata = $("#girisHata");
-    hata.hidden = true;
-    const btn = e.target.querySelector("button[type=submit]");
-    btn.disabled = true;
-    const tamam = await Auth.girisDene($("#gKullanici").value, $("#gSifre").value);
-    btn.disabled = false;
-    if (tamam) {
-      e.target.reset();
-      uygulamaGoster();
-    } else {
-      hata.hidden = false;
-      $("#gSifre").value = "";
-      $("#gSifre").focus();
-    }
-  });
+  /* ---------- Çıkış ---------- */
   $("#cikisBtn").addEventListener("click", () => {
     Auth.cikisYap();
-    girisGoster();
+    location.replace("giris.html");
   });
 
   /* ---------- Kişi formu ---------- */
@@ -108,6 +132,7 @@
     if (!ad) { e.preventDefault(); return; }
     Store.kisiEkle(ad, $("#kisiNotAlan").value.trim());
     cizAna();
+    bildir(`"${ad}" deftere eklendi.`);
   });
 
   /* ---------- Hareket formu ---------- */
@@ -160,12 +185,14 @@
       vade: (durum.hareketMod === "borc" && $("#hVade").value) ? $("#hVade").value : null,
       aciklama: $("#hAciklama").value
     };
-    const sonuc = durum.duzenlenenHareketId
+    const guncellemeydi = Boolean(durum.duzenlenenHareketId);
+    const sonuc = guncellemeydi
       ? Store.hareketGuncelle(durum.acikKisiId, durum.duzenlenenHareketId, alanlar)
       : Store.hareketEkle(durum.acikKisiId, alanlar);
     if (!sonuc) { e.preventDefault(); return; }
     durum.duzenlenenHareketId = null;
     cizDetay();
+    bildir(guncellemeydi ? "Hareket güncellendi." : "Hareket eklendi.");
   });
 
   document.querySelectorAll("[data-kapat]").forEach(b => {
@@ -176,10 +203,14 @@
   $("#geriBtn").addEventListener("click", anaGoster);
   $("#kisiSilBtn").addEventListener("click", () => {
     const k = Store.kisiBul(durum.acikKisiId);
-    if (k && confirm(`"${k.ad}" ve tüm hareketleri silinsin mi? Bu işlem geri alınamaz.`)) {
-      Store.kisiSil(durum.acikKisiId);
-      anaGoster();
-    }
+    if (!k) return;
+    const sira = Store.kisiler().indexOf(k);
+    Store.kisiSil(k.id);
+    anaGoster();
+    bildir(`"${k.ad}" silindi.`, () => {
+      Store.kisiGeriAl(k, sira);
+      cizAna();
+    });
   });
   $("#csvBtn").addEventListener("click", () => {
     const csv = Store.csvUret();
@@ -190,6 +221,7 @@
     a.download = "defter-" + Store.bugunISO() + ".csv";
     a.click();
     URL.revokeObjectURL(a.href);
+    bildir("CSV indirildi.");
   });
   $("#aramaKutu").addEventListener("input", e => {
     durum.arama = e.target.value;
@@ -208,8 +240,9 @@
   $("#bugunTarih").textContent = new Date()
     .toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
 
-  if (Auth.girisYapildiMi()) uygulamaGoster();
-  else girisGoster();
+  $("#uygulama").hidden = false;
+  $("#altEylem").hidden = false;
+  anaGoster();
 
   /* Çevrimdışı destek — yalnızca güvenli bağlamda (https/localhost) çalışır */
   if ("serviceWorker" in navigator && window.isSecureContext) {

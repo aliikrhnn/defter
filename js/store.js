@@ -134,6 +134,20 @@ const Store = (() => {
     kaydet(veri);
   }
 
+  /* --- Geri al (undo) --- silinen kaydı olduğu gibi geri koyar */
+  function kisiGeriAl(kisi, sira) {
+    if (!kisi || kisiBul(kisi.id)) return;
+    const hedef = Math.max(0, Math.min(sira ?? veri.kisiler.length, veri.kisiler.length));
+    veri.kisiler.splice(hedef, 0, kisi);
+    kaydet(veri);
+  }
+  function hareketGeriAl(kisiId, hareket) {
+    const k = kisiBul(kisiId);
+    if (!k || !hareket || k.hareketler.some(h => h.id === hareket.id)) return;
+    k.hareketler.push(hareket);
+    kaydet(veri);
+  }
+
   /* Defterin tamamını CSV olarak üretir (";" ayraçlı — TR Excel uyumu).
      Hücreler daima tırnaklanır; içerideki tırnaklar ikilenir (CSV kaçışı). */
   function csvUret() {
@@ -155,6 +169,7 @@ const Store = (() => {
   return {
     ISARET, TUR_AD, bugunISO,
     kisiler, kisiBul, kisiNet, sonTarih, vadeDurumu,
-    kisiEkle, kisiSil, hareketEkle, hareketGuncelle, hareketSil, csvUret
+    kisiEkle, kisiSil, hareketEkle, hareketGuncelle, hareketSil,
+    kisiGeriAl, hareketGeriAl, csvUret
   };
 })();

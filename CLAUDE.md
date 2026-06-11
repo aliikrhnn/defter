@@ -43,17 +43,23 @@ Yeni font ekleme. Yeni renk gerekiyorsa önce buradaki paletten türet ve tabloy
 ## Mimari
 
 ```
-index.html           Görünüm iskeletleri (giriş / ana / detay) + dialoglar
+index.html           Defter görünümleri (ana / detay) + dialoglar + bildirim — oturum yoksa giris.html'e yönlendirir
+giris.html           Giriş sayfası (ayrı sayfa; başarılı girişte index'e yönlendirir)
 css/style.css        Tokenlar + bileşenler (bölüm yorumlarıyla ayrılmış)
-js/store.js          Veri katmanı — localStorage, sürümlü şema (defter-v1)
+js/store.js          Veri katmanı — localStorage, sürümlü şema (defter-v1), geri al (undo) dahil
 js/auth.js           Giriş kapısı — SHA-256 hash karşılaştırma, sessionStorage oturumu
 js/ui.js             Saf render fonksiyonları (anaCiz, detayCiz) — DOM'a yazar, state tutmaz
-js/app.js            Olay bağlama, görünüm geçişleri, başlatma, SW kaydı
+js/app.js            Olay bağlama, görünüm geçişleri, bildirim/geri al, başlatma, SW kaydı
+js/giris.js          Giriş sayfası mantığı (yönlendirme + hata sallanması)
 sw.js                Çevrimdışı önbellek (network-first; değişiklikte SURUM artır)
 icon.svg             Favicon / PWA ikonu (defter motifi, token renkleri)
 manifest.webmanifest PWA manifest'i
 vercel.json          Yayın güvenlik başlıkları (CSP dahil — yeni dış kaynak eklersen güncelle)
 ```
+
+Animasyon kuralları: yalnızca `transform`/`opacity` canlandırılır; `prefers-reduced-motion`
+taban kuralı tüm animasyonları kapatır. Silme işlemleri onay kutusu yerine
+**geri al destekli bildirim** kullanır (`bildir(mesaj, geriAlFn)` — `app.js`).
 
 Kurallar:
 - State yalnızca `app.js` + `store.js`'te yaşar; `ui.js` parametreyle çizer.

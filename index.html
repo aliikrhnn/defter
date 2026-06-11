@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Defter — Kişisel borç &amp; alacak takibi</title>
+<meta name="description" content="Kişisel borç ve alacak takip defteri.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#FBFBF9">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ======== GİRİŞ GÖRÜNÜMÜ ======== -->
+<main id="girisGorunum" class="giris" hidden>
+  <div class="giris-kutu">
+    <h1 class="giris-marka">Defter</h1>
+    <p class="giris-alt">Kişisel borç &amp; alacak takibi</p>
+
+    <form id="girisForm" novalidate>
+      <div class="alan">
+        <label for="gKullanici">Kullanıcı adı</label>
+        <input id="gKullanici" name="kullanici" type="text" required
+               autocomplete="username" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="alan">
+        <label for="gSifre">Şifre</label>
+        <input id="gSifre" name="sifre" type="password" required autocomplete="current-password">
+      </div>
+      <p class="giris-hata" id="girisHata" role="alert" hidden>Kullanıcı adı veya şifre hatalı.</p>
+      <button type="submit" class="btn btn-ana giris-btn">Giriş yap</button>
+    </form>
+  </div>
+</main>
+
+<div class="kap" id="uygulama" hidden>
+
+  <!-- ======== ANA GÖRÜNÜM ======== -->
+  <main id="anaGorunum">
+    <header class="marka">
+      <h1>Defter</h1>
+      <span class="marka-sag">
+        <span class="tarih" id="bugunTarih"></span>
+        <button type="button" class="cikis" id="cikisBtn">Çıkış</button>
+      </span>
+    </header>
+
+    <section class="netblok" aria-labelledby="netEtiket">
+      <p class="etiket" id="netEtiket">Net durum</p>
+      <p class="tutar" id="netTutar" aria-live="polite">₺0,00</p>
+      <p class="ozet">
+        <span class="y">Alacak <b id="ozAlacak">₺0,00</b></span>
+        <span class="k">Borç <b id="ozBorc">₺0,00</b></span>
+      </p>
+    </section>
+
+    <div class="araclar">
+      <div class="ara">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="2"/>
+          <path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <label class="gizli" for="aramaKutu">Kişi ara</label>
+        <input id="aramaKutu" type="search" placeholder="Kişi ara" autocomplete="off">
+      </div>
+      <div class="segment" role="group" aria-label="Listeyi filtrele">
+        <button type="button" data-f="tumu" aria-pressed="true">Tümü</button>
+        <button type="button" data-f="alacak" aria-pressed="false">Alacaklar</button>
+        <button type="button" data-f="borc" aria-pressed="false">Borçlar</button>
+      </div>
+    </div>
+
+    <ul class="liste" id="kisiListe"></ul>
+    <div class="bos" id="bosDurum" hidden>
+      <h2>Defter henüz boş</h2>
+      <p>İlk kişiyi ekle, borç ve ödemeleri buradan takip et.</p>
+    </div>
+
+    <div class="disa">
+      <button type="button" class="btn-metin" id="csvBtn">Dışa aktar (CSV)</button>
+    </div>
+  </main>
+
+  <!-- ======== KİŞİ DETAY ======== -->
+  <main id="detayGorunum" hidden>
+    <div class="detay-ust">
+      <button class="geri" id="geriBtn" aria-label="Listeye dön">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+          <path d="M14 4l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <h2 id="detayAd" tabindex="-1"></h2>
+    </div>
+    <p class="kisi-not" id="detayNot"></p>
+
+    <section class="netblok" aria-labelledby="detayNetEtiket">
+      <p class="etiket" id="detayNetEtiket">Bu kişiyle net durum</p>
+      <p class="tutar" id="detayNet">₺0,00</p>
+      <p class="ozet" id="detayOzet"></p>
+    </section>
+
+    <h3 class="gizli">Hareketler</h3>
+    <ul class="hareketler" id="hareketListe"></ul>
+    <div class="bos" id="detayBos" hidden>
+      <h2>Hareket yok</h2>
+      <p>Borç ya da ödeme ekleyerek başla.</p>
+    </div>
+
+    <div class="detay-alt">
+      <button class="btn-sil" id="kisiSilBtn">Kişiyi sil</button>
+    </div>
+  </main>
+</div>
+
+<!-- ======== ALT SABİT EYLEMLER ======== -->
+<div class="alt-eylem" id="altEylem" hidden>
+  <div class="ic" id="anaEylemler">
+    <button class="btn btn-ana" id="kisiEkleBtn">＋ Kişi ekle</button>
+  </div>
+  <div class="ic" id="detayEylemler" hidden>
+    <button class="btn btn-kirmizi" id="borcEkleBtn">Borç ekle</button>
+    <button class="btn btn-yesil" id="odemeEkleBtn">Ödeme ekle</button>
+  </div>
+</div>
+
+<!-- ======== KİŞİ FORMU ======== -->
+<dialog id="kisiDialog" aria-labelledby="kisiFormBaslik">
+  <form class="form" method="dialog" id="kisiForm">
+    <h2 id="kisiFormBaslik">Yeni kişi</h2>
+    <div class="alan">
+      <label for="kisiAd">Ad</label>
+      <input id="kisiAd" name="ad" type="text" required maxlength="60" autocomplete="off">
+    </div>
+    <div class="alan">
+      <label for="kisiNotAlan">Not <span class="ipucu">— isteğe bağlı</span></label>
+      <input id="kisiNotAlan" name="not" type="text" maxlength="120" autocomplete="off" placeholder="ör. iş arkadaşı">
+    </div>
+    <div class="form-eylem">
+      <button type="button" class="btn btn-cerceve" data-kapat>Vazgeç</button>
+      <button type="submit" class="btn btn-ana" value="kaydet">Kaydet</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ======== HAREKET FORMU ======== -->
+<dialog id="hareketDialog" aria-labelledby="hFormBaslik">
+  <form class="form" method="dialog" id="hareketForm">
+    <h2 id="hFormBaslik">Borç ekle</h2>
+
+    <fieldset class="yontur alan">
+      <legend>Yön</legend>
+      <div class="yon-secim" id="yonSecim"></div>
+    </fieldset>
+
+    <div class="alan">
+      <label for="hTutar">Tutar (₺)</label>
+      <input id="hTutar" name="tutar" type="number" inputmode="decimal" min="0.01" step="0.01" required>
+    </div>
+    <div class="alan">
+      <label for="hTarih">Tarih</label>
+      <input id="hTarih" name="tarih" type="date" required>
+    </div>
+    <div class="alan" id="vadeAlan">
+      <label for="hVade">Vade <span class="ipucu">— isteğe bağlı, ödenmesi gereken tarih</span></label>
+      <input id="hVade" name="vade" type="date">
+    </div>
+    <div class="alan">
+      <label for="hAciklama">Açıklama <span class="ipucu">— isteğe bağlı</span></label>
+      <textarea id="hAciklama" name="aciklama" maxlength="200" placeholder="ör. araba tamiri için"></textarea>
+    </div>
+    <div class="form-eylem">
+      <button type="button" class="btn btn-cerceve" data-kapat>Vazgeç</button>
+      <button type="submit" class="btn btn-ana" value="kaydet">Kaydet</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="js/store.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

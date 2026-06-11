@@ -1,0 +1,234 @@
+/* =====================================================================
+   DEFTER — stil dosyası
+   Tasarım dili: "veresiye defteri". Kurallar CLAUDE.md'de.
+   Yeni bileşen eklerken: tokenları kullan, yeni renk/font tanımlama.
+   ===================================================================== */
+
+/* ============ 1. Token sistemi ============ */
+:root{
+  --kagit:#FBFBF9;          /* zemin: soğuk-sıcak arası beyaz, krem değil */
+  --murekkep:#1A1C1E;       /* ana mürekkep */
+  --soluk:#5C6064;          /* ikincil metin — kontrast 7:1+ */
+  --cizgi:#E4E2DC;          /* defter çizgisi */
+  --cizgi-koyu:#C9C6BE;
+  --alacak:#1E6E4E;         /* yeşil mürekkep: sana borçlular */
+  --alacak-zemin:#EDF5F0;
+  --borc:#B3372B;           /* kırmızı mürekkep: senin borçların */
+  --borc-zemin:#FAEFED;
+  --uyari:#8A5A00;
+  --uyari-zemin:#FBF3E2;
+  --govde:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --baslik:"Bricolage Grotesque",var(--govde);
+  --rakam:"IBM Plex Mono",ui-monospace,monospace;
+  --r:10px;
+  --dokunma:44px;           /* WCAG dokunma hedefi tabanı */
+}
+
+/* ============ 2. Taban ============ */
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--govde);
+  background:var(--kagit);
+  color:var(--murekkep);
+  font-size:16px;line-height:1.5;
+  min-height:100dvh;
+}
+:focus-visible{outline:3px solid var(--murekkep);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+.gizli{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.kap{max-width:560px;margin:0 auto;padding:0 20px 120px;
+  padding-left:max(20px,env(safe-area-inset-left));
+  padding-right:max(20px,env(safe-area-inset-right));}
+
+/* ============ 3. Giriş ekranı ============ */
+.giris{
+  min-height:100dvh;display:flex;align-items:center;justify-content:center;
+  padding:24px;
+}
+.giris-kutu{width:100%;max-width:360px}
+.giris-marka{
+  font-family:var(--baslik);font-weight:700;font-size:2rem;letter-spacing:-.02em;
+  display:inline-block;padding-bottom:8px;
+  border-bottom:1px solid var(--murekkep);
+  box-shadow:0 4px 0 -3px var(--murekkep); /* imza: çift çizgi */
+}
+.giris-alt{color:var(--soluk);font-size:.92rem;margin:14px 0 28px}
+.giris-hata{color:var(--borc);font-size:.88rem;font-weight:600;margin:-4px 0 14px}
+.giris-btn{width:100%}
+
+/* ============ 4. Üst kimlik ============ */
+header.marka{display:flex;align-items:baseline;justify-content:space-between;padding:20px 0 4px}
+header.marka h1{font-family:var(--baslik);font-weight:700;font-size:1.15rem;letter-spacing:-.01em}
+.marka-sag{display:flex;align-items:baseline;gap:14px}
+header.marka .tarih{font-family:var(--rakam);font-size:.78rem;color:var(--soluk)}
+.cikis{
+  background:none;border:0;cursor:pointer;color:var(--soluk);
+  font:600 .8rem var(--govde);text-decoration:underline;text-underline-offset:3px;
+  min-height:var(--dokunma);padding:0 4px;
+}
+.cikis:hover{color:var(--murekkep)}
+
+/* ============ 5. Net durum bloğu (imza: çift çizgi toplam) ============ */
+.netblok{padding:28px 0 22px;border-bottom:1px solid var(--cizgi)}
+.netblok .etiket{font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--soluk)}
+.netblok .tutar{
+  font-family:var(--rakam);font-weight:600;font-size:clamp(2.1rem,9vw,2.9rem);
+  letter-spacing:-.02em;margin-top:6px;display:inline-block;
+  padding-bottom:8px;
+  border-bottom:1px solid var(--murekkep);
+  box-shadow:0 4px 0 -3px var(--murekkep); /* muhasebedeki çift çizgi: kesin toplam */
+}
+.netblok .tutar.poz{color:var(--alacak);border-color:var(--alacak);box-shadow:0 4px 0 -3px var(--alacak)}
+.netblok .tutar.neg{color:var(--borc);border-color:var(--borc);box-shadow:0 4px 0 -3px var(--borc)}
+.netblok .ozet{margin-top:14px;font-size:.9rem;color:var(--soluk);display:flex;gap:18px;flex-wrap:wrap}
+.netblok .ozet b{font-family:var(--rakam);font-weight:600;color:var(--murekkep)}
+.netblok .ozet .y b{color:var(--alacak)}
+.netblok .ozet .k b{color:var(--borc)}
+
+/* ============ 6. Arama + filtre ============ */
+.araclar{padding:18px 0 6px;display:flex;flex-direction:column;gap:12px}
+.ara{position:relative}
+.ara input{
+  width:100%;min-height:var(--dokunma);padding:10px 14px 10px 40px;
+  border:1px solid var(--cizgi-koyu);border-radius:var(--r);
+  background:#fff;font:inherit;color:inherit;
+}
+.ara input::placeholder{color:#8B8F93}
+.ara svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--soluk)}
+.segment{display:flex;border:1px solid var(--cizgi-koyu);border-radius:var(--r);overflow:hidden;background:#fff}
+.segment button{
+  flex:1;min-height:var(--dokunma);border:0;background:transparent;
+  font:600 .88rem var(--govde);color:var(--soluk);cursor:pointer;
+}
+.segment button+button{border-left:1px solid var(--cizgi)}
+.segment button[aria-pressed="true"]{background:var(--murekkep);color:var(--kagit)}
+
+/* ============ 7. Kişi listesi: defter satırları ============ */
+.liste{list-style:none;margin-top:8px}
+.liste li{border-bottom:1px solid var(--cizgi)}
+.satir{
+  width:100%;display:flex;align-items:center;gap:14px;
+  padding:16px 4px;min-height:64px;
+  background:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;
+}
+.satir:active{background:#F2F1ED}
+.satir .sol{flex:1;min-width:0}
+.satir .ad{font-weight:600;font-size:1rem}
+.satir .alt{font-size:.8rem;color:var(--soluk);margin-top:2px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.satir .alt time{font-family:var(--rakam)}
+.satir .sag{text-align:right;flex-shrink:0}
+.satir .miktar{font-family:var(--rakam);font-weight:600;font-size:1rem;letter-spacing:-.01em}
+.satir .yon{font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-top:2px}
+.poz .miktar,.poz .yon{color:var(--alacak)}
+.neg .miktar,.neg .yon{color:var(--borc)}
+.notr .miktar{color:var(--soluk)}
+.rozet{
+  display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.03em;
+  padding:2px 8px;border-radius:99px;
+}
+.rozet.gecmis{background:var(--borc-zemin);color:var(--borc)}
+.rozet.yakin{background:var(--uyari-zemin);color:var(--uyari)}
+
+/* ============ 7b. Dışa aktarma ============ */
+.disa{padding:18px 0 0;display:flex;justify-content:center}
+.btn-metin{
+  background:none;border:0;cursor:pointer;color:var(--soluk);
+  font:600 .8rem var(--govde);text-decoration:underline;text-underline-offset:3px;
+  min-height:var(--dokunma);padding:0 8px;
+}
+.btn-metin:hover{color:var(--murekkep)}
+
+/* ============ 8. Boş durumlar ============ */
+.bos{padding:56px 12px;text-align:center;color:var(--soluk)}
+.bos h2{font-family:var(--baslik);font-weight:600;font-size:1.2rem;color:var(--murekkep);margin-bottom:6px}
+.bos p{font-size:.92rem;max-width:30ch;margin:0 auto}
+
+/* ============ 9. Alt sabit eylem ============ */
+.alt-eylem{
+  position:fixed;left:0;right:0;bottom:0;z-index:5;
+  padding:12px 20px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(to top,var(--kagit) 70%,transparent);
+  display:flex;justify-content:center;
+}
+.alt-eylem .ic{width:100%;max-width:520px;display:flex;gap:10px}
+
+/* ============ 10. Düğmeler ============ */
+.btn{
+  min-height:48px;padding:12px 20px;border-radius:var(--r);
+  font:600 .95rem var(--govde);cursor:pointer;border:1px solid transparent;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn-ana{background:var(--murekkep);color:var(--kagit);flex:1}
+.btn-ana:active{background:#000}
+.btn-cerceve{background:#fff;color:var(--murekkep);border-color:var(--cizgi-koyu)}
+.btn-yesil{background:var(--alacak);color:#fff;flex:1}
+.btn-kirmizi{background:var(--borc);color:#fff;flex:1}
+.btn-sil{background:none;border:0;color:var(--borc);font:600 .85rem var(--govde);cursor:pointer;min-height:var(--dokunma);padding:0 8px}
+
+/* ============ 11. Kişi detay ============ */
+.detay-ust{display:flex;align-items:center;gap:6px;padding:16px 0 0}
+.geri{
+  min-width:var(--dokunma);min-height:var(--dokunma);
+  display:inline-flex;align-items:center;justify-content:center;
+  background:none;border:0;cursor:pointer;color:var(--murekkep);border-radius:8px;margin-left:-10px;
+}
+.detay-ust h2{font-family:var(--baslik);font-weight:700;font-size:1.35rem;letter-spacing:-.01em;flex:1;min-width:0;overflow-wrap:anywhere}
+.kisi-not{color:var(--soluk);font-size:.9rem;padding:2px 0 0 34px}
+
+.hareketler{list-style:none;margin-top:10px}
+.hareketler li{display:flex;gap:14px;padding:14px 4px;border-bottom:1px solid var(--cizgi);align-items:flex-start}
+.hareketler .gun{font-family:var(--rakam);font-size:.78rem;color:var(--soluk);width:64px;flex-shrink:0;padding-top:2px}
+.hareketler .orta{flex:1;min-width:0}
+.hareketler .tur{font-weight:600;font-size:.95rem}
+.hareketler .aciklama{font-size:.85rem;color:var(--soluk);margin-top:1px;overflow-wrap:anywhere;display:block}
+.hareketler .vade{font-size:.78rem;margin-top:3px;display:block}
+.hareketler .vade.gecmis{color:var(--borc)}
+.hareketler .vade.normal{color:var(--soluk)}
+.hareketler .tutarh{font-family:var(--rakam);font-weight:600;flex-shrink:0;padding-top:2px}
+.hareketler .tutarh.arti{color:var(--alacak)}
+.hareketler .tutarh.eksi{color:var(--borc)}
+.hareketler .h-eylem{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.hareketler .h-duzenle,
+.hareketler .h-sil{background:none;border:0;cursor:pointer;color:var(--soluk);min-width:36px;min-height:36px;border-radius:8px;flex-shrink:0}
+.hareketler .h-duzenle:hover{color:var(--murekkep)}
+.hareketler .h-sil:hover{color:var(--borc)}
+
+.detay-alt{margin-top:26px;padding-top:14px;border-top:1px solid var(--cizgi);display:flex;justify-content:flex-end}
+
+/* ============ 12. Dialog formları ============ */
+dialog{
+  border:0;border-radius:16px 16px 0 0;padding:0;width:100%;max-width:560px;
+  background:var(--kagit);color:var(--murekkep);
+  margin:auto auto 0;
+}
+@media (min-width:600px){dialog{border-radius:16px;margin:auto}}
+dialog::backdrop{background:rgba(26,28,30,.45)}
+.form{padding:22px 22px calc(22px + env(safe-area-inset-bottom))}
+.form h2{font-family:var(--baslik);font-weight:700;font-size:1.25rem;margin-bottom:18px}
+.alan{margin-bottom:16px}
+.alan label{display:block;font-weight:600;font-size:.86rem;margin-bottom:6px}
+.alan .ipucu{font-weight:400;color:var(--soluk)}
+.alan input,.alan textarea{
+  width:100%;min-height:var(--dokunma);padding:11px 14px;
+  border:1px solid var(--cizgi-koyu);border-radius:var(--r);
+  background:#fff;font:inherit;color:inherit;
+}
+.alan textarea{resize:vertical;min-height:64px}
+.alan input[type="number"]{font-family:var(--rakam)}
+fieldset.yontur{border:0}
+fieldset.yontur legend{font-weight:600;font-size:.86rem;margin-bottom:6px}
+.yon-secim{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.yon-secim label{
+  display:flex;align-items:center;gap:8px;cursor:pointer;
+  border:1px solid var(--cizgi-koyu);border-radius:var(--r);
+  padding:11px 12px;min-height:var(--dokunma);font-size:.88rem;font-weight:600;background:#fff;
+}
+.yon-secim input{accent-color:var(--murekkep);width:18px;height:18px;flex-shrink:0}
+.yon-secim label:has(input:checked){border-color:var(--murekkep);box-shadow:inset 0 0 0 1px var(--murekkep)}
+.yon-secim label:has(input:focus-visible){outline:3px solid var(--murekkep);outline-offset:2px}
+.form-eylem{display:flex;gap:10px;margin-top:20px}
+.form-eylem .btn{flex:1}

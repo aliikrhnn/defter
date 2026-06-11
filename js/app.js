@@ -126,11 +126,15 @@
     $("#kisiForm").reset();
     kisiDialog.showModal();
   });
+  /* Not: dialog formları method="dialog" gönderimine bırakılmaz — bazı
+     tarayıcılar CSP form-action'ı buna da uygulayıp kaydetmeyi sessizce
+     engelliyor. preventDefault + close() ile tamamen JS'te yönetilir. */
   $("#kisiForm").addEventListener("submit", e => {
-    if (e.submitter && e.submitter.value !== "kaydet") return;
+    e.preventDefault();
     const ad = $("#kisiAd").value.trim();
-    if (!ad) { e.preventDefault(); return; }
+    if (!ad) return;
     Store.kisiEkle(ad, $("#kisiNotAlan").value.trim());
+    kisiDialog.close();
     cizAna();
     bildir(`"${ad}" deftere eklendi.`);
   });
@@ -177,7 +181,7 @@
   $("#odemeEkleBtn").addEventListener("click", () => hareketFormuAc("odeme"));
 
   $("#hareketForm").addEventListener("submit", e => {
-    if (e.submitter && e.submitter.value !== "kaydet") return;
+    e.preventDefault();
     const alanlar = {
       tur: new FormData(e.target).get("tur"),
       tutar: parseFloat($("#hTutar").value),
@@ -189,7 +193,8 @@
     const sonuc = guncellemeydi
       ? Store.hareketGuncelle(durum.acikKisiId, durum.duzenlenenHareketId, alanlar)
       : Store.hareketEkle(durum.acikKisiId, alanlar);
-    if (!sonuc) { e.preventDefault(); return; }
+    if (!sonuc) return;
+    hareketDialog.close();
     durum.duzenlenenHareketId = null;
     cizDetay();
     bildir(guncellemeydi ? "Hareket güncellendi." : "Hareket eklendi.");

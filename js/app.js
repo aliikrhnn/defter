@@ -165,6 +165,15 @@
       devamiIstendi() {
         durum.tumunuGoster = true;
         cizAna();
+      },
+      kayitSilIstendi(h) { // Kasa filtresindeki gelir/gider satırının silinmesi
+        Store.kasaSil(h.id);
+        cizAna();
+        bildir("Kayıt silindi.", () => {
+          Store.kasaGeriAl(h);
+          if (!$("#anaGorunum").hidden) cizAna();
+          else if (!$("#kasaGorunum").hidden) cizKasa();
+        });
       }
     });
   }

@@ -132,7 +132,8 @@ header.marka .tarih{font-family:var(--rakam);font-size:.78rem;color:var(--soluk)
 .segment{display:flex;border:1px solid var(--cizgi-koyu);border-radius:var(--r);overflow:hidden;background:#fff}
 .segment button{
   flex:1;min-height:var(--dokunma);border:0;background:transparent;
-  font:600 .88rem var(--govde);color:var(--soluk);cursor:pointer;
+  font:600 .84rem var(--govde);color:var(--soluk);cursor:pointer;
+  padding:0 2px; /* 4 sekme dar ekrana sığsın */
 }
 .segment button+button{border-left:1px solid var(--cizgi)}
 .segment button[aria-pressed="true"]{background:var(--murekkep);color:var(--kagit)}

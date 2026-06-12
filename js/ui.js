@@ -29,9 +29,50 @@ const UI = (() => {
     oncekiTutarlar[el.id] = deger;
   }
 
+  /* Tek gelir/gider satırı üretir — ana ekrandaki Kasa filtresi ve
+     Kasa görünümü aynı satırı paylaşır. */
+  function kasaSatir(h, kayitSilIstendi) {
+    const isr = Store.KASA_ISARET[h.tur];
+    const kisi = h.kisiId ? Store.kisiBul(h.kisiId) : null;
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <time class="gun" datetime="${h.tarih}">${tarihKisa(h.tarih)}</time>
+      <span class="orta">
+        <span class="tur">${Store.KASA_TUR_AD[h.tur]}${h.parselNo ? ` <span class="parsel-rozet">Parsel ${Number(h.parselNo)}</span>` : ""}</span>
+        ${kisi ? `<span class="aciklama kasa-kisi"></span>` : ""}
+        ${h.aciklama ? `<span class="aciklama"></span>` : ""}
+      </span>
+      <span class="tutarh ${isr > 0 ? "arti" : "eksi"}">${isr > 0 ? "+" : "−"}${para(h.tutar)}</span>
+      <span class="h-eylem">
+        <button type="button" class="h-sil" aria-label="Bu kaydı sil: ${Store.KASA_TUR_AD[h.tur]} ${para(h.tutar)}">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M3 4h10M6.5 4V2.5h3V4M5 4l.6 9h4.8L11 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </span>`;
+    const kk = li.querySelector(".kasa-kisi");
+    if (kk) kk.textContent = "Kişi: " + kisi.ad;
+    const ac = li.querySelector(".aciklama:not(.kasa-kisi)");
+    if (ac) ac.textContent = h.aciklama;
+    li.querySelector(".h-sil").addEventListener("click", () => kayitSilIstendi(h));
+    return li;
+  }
+
+  /* "Devamını göster (N ... daha)" satırı */
+  function devamSatiri(n, birim, devamiIstendi) {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "devam";
+    btn.textContent = `Devamını göster (${n} ${birim} daha)`;
+    btn.addEventListener("click", devamiIstendi);
+    li.appendChild(btn);
+    return li;
+  }
+
   /* ---------- Ana görünüm ---------- */
-  const LISTE_LIMIT = 10; // ilk gösterilen kişi sayısı; kalanı "Devamını göster" açar
-  function anaCiz({ filtre, arama, satirTiklandi, tumunuGoster, devamiIstendi }) {
+  const LISTE_LIMIT = 10; // ilk gösterilen satır sayısı; kalanı "Devamını göster" açar
+  function anaCiz({ filtre, arama, satirTiklandi, tumunuGoster, devamiIstendi, kayitSilIstendi }) {
     let alacakT = 0, borcT = 0;
     for (const k of Store.kisiler()) {
       const n = Store.kisiNet(k);
@@ -46,7 +87,43 @@ const UI = (() => {
 
     const liste = $("#kisiListe");
     liste.innerHTML = "";
+    /* Kasa filtresi gelir/gider satırı çizer — hareket satırı stilleri devreye girer */
+    liste.classList.toggle("hareketler", filtre === "kasa");
     const q = (arama || "").toLocaleLowerCase("tr");
+
+    if (filtre === "kasa") {
+      $("#bosDurum").hidden = true;
+      const kayitlar = [...Store.kasaListe()]
+        .filter(h => {
+          if (!q) return true;
+          const kisi = h.kisiId ? Store.kisiBul(h.kisiId) : null;
+          return (h.aciklama || "").toLocaleLowerCase("tr").includes(q) ||
+            (kisi !== null && kisi.ad.toLocaleLowerCase("tr").includes(q)) ||
+            Store.KASA_TUR_AD[h.tur].toLocaleLowerCase("tr").includes(q);
+        })
+        .sort((a, b) => b.tarih.localeCompare(a.tarih));
+      if (kayitlar.length === 0) {
+        const li = document.createElement("li");
+        li.className = "bos";
+        li.style.borderBottom = "none";
+        li.textContent = q
+          ? "Bu aramayla eşleşen gelir/gider kaydı yok."
+          : "Henüz gelir/gider kaydı yok — Kasa ekranından ekleyebilirsin.";
+        liste.appendChild(li);
+        return;
+      }
+      const gizli = tumunuGoster ? 0 : Math.max(0, kayitlar.length - LISTE_LIMIT);
+      const gorunurK = gizli > 0 ? kayitlar.slice(0, LISTE_LIMIT) : kayitlar;
+      let i = 0;
+      for (const h of gorunurK) {
+        const li = kasaSatir(h, kayitSilIstendi);
+        li.style.setProperty("--i", Math.min(i++, 12));
+        liste.appendChild(li);
+      }
+      if (gizli > 0) liste.appendChild(devamSatiri(gizli, "kayıt", devamiIstendi));
+      return;
+    }
+
     const goster = Store.kisiler()
       .filter(k => k.ad.toLocaleLowerCase("tr").includes(q))
       .filter(k => {
@@ -102,16 +179,7 @@ const UI = (() => {
       liste.appendChild(li);
     }
 
-    if (gizliSayi > 0) {
-      const li = document.createElement("li");
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "devam";
-      btn.textContent = `Devamını göster (${gizliSayi} kişi daha)`;
-      btn.addEventListener("click", devamiIstendi);
-      li.appendChild(btn);
-      liste.appendChild(li);
-    }
+    if (gizliSayi > 0) liste.appendChild(devamSatiri(gizliSayi, "kişi", devamiIstendi));
   }
 
   /* ---------- Kişi detay ---------- */
@@ -273,30 +341,8 @@ const UI = (() => {
 
     let sira = 0;
     for (const h of sirali) {
-      const isr = Store.KASA_ISARET[h.tur];
-      const kisi = h.kisiId ? Store.kisiBul(h.kisiId) : null;
-      const li = document.createElement("li");
+      const li = kasaSatir(h, kayitSilIstendi);
       li.style.setProperty("--i", Math.min(sira++, 12));
-      li.innerHTML = `
-        <time class="gun" datetime="${h.tarih}">${tarihKisa(h.tarih)}</time>
-        <span class="orta">
-          <span class="tur">${Store.KASA_TUR_AD[h.tur]}${h.parselNo ? ` <span class="parsel-rozet">Parsel ${Number(h.parselNo)}</span>` : ""}</span>
-          ${kisi ? `<span class="aciklama kasa-kisi"></span>` : ""}
-          ${h.aciklama ? `<span class="aciklama"></span>` : ""}
-        </span>
-        <span class="tutarh ${isr > 0 ? "arti" : "eksi"}">${isr > 0 ? "+" : "−"}${para(h.tutar)}</span>
-        <span class="h-eylem">
-          <button type="button" class="h-sil" aria-label="Bu kaydı sil: ${Store.KASA_TUR_AD[h.tur]} ${para(h.tutar)}">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M3 4h10M6.5 4V2.5h3V4M5 4l.6 9h4.8L11 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-        </span>`;
-      const kk = li.querySelector(".kasa-kisi");
-      if (kk) kk.textContent = "Kişi: " + kisi.ad;
-      const ac = li.querySelector(".aciklama:not(.kasa-kisi)");
-      if (ac) ac.textContent = h.aciklama;
-      li.querySelector(".h-sil").addEventListener("click", () => kayitSilIstendi(h));
       ul.appendChild(li);
     }
   }

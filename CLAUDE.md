@@ -64,7 +64,14 @@ taban kuralı tüm animasyonları kapatır. Silme işlemleri onay kutusu yerine
 
 Kurallar:
 - State yalnızca `app.js` + `store.js`'te yaşar; `ui.js` parametreyle çizer.
-- İşaret kuralı tek yerde (`store.js` → `ISARET`): `+` kişi bana borçlu, `−` ben borçluyum. Yeni hareket türü eklerken bu tabloya satır ekle, başka yerde işaret hesaplama.
+- İşaret kuralı tek yerde (`store.js` → `ISARET`) ve **kasa bakışıyla** yazılır:
+  `+` kasaya para girer (borç aldım, ödeme aldım), `−` kasadan çıkar (borç verdim,
+  ödeme yaptım). Alacak/borç yönü bunun tersidir ve yalnız `kisiNet` içinde hesaplanır.
+  Yeni hareket türü eklerken bu tabloya satır ekle, başka yerde işaret hesaplama.
+- Parseller 1–63 sabittir (`store.js` → `PARSEL_SAYISI`); `veri.parseller` yalnız
+  atanmış olanları tutar (no → kisiId). Atanmış = aktif, atanmamış = pasif.
+- Gelir/gider kayıtları `veri.kasa`'da yaşar; kişi/parsel alanları isteğe bağlı
+  nottur, kişinin alacak/borç dengesine İŞLEMEZ — yalnız kasa toplamına işler.
 - Şema değişikliğinde `SURUM`'u artır ve `store.js` içine migration yaz; kullanıcı verisini asla sıfırlama.
 - Kullanıcıdan gelen metni DOM'a daima `textContent` ile yaz (XSS).
 
@@ -90,6 +97,9 @@ Kurallar:
 - ✅ CSV dışa aktarma (`Store.csvUret` — ";" ayraçlı, BOM'lu, TR Excel uyumlu)
 - ✅ PWA / çevrimdışı destek (`sw.js`, `manifest.webmanifest`)
 - ✅ Supabase ile senkron + gerçek auth (`js/bulut.js`)
+- ✅ Parsel sistemi (1–63, kişiye atama, aktif/pasif ızgara — şema v2)
+- ✅ Kasa: gelir/gider kayıtları + kasa toplamı ana ekranda (şema v2)
+- ✅ Toplu borç ekleme (kişi ve parsel seçimiyle, geri al destekli)
 - Taksit / kısmi ödeme planı (hareket şemasına `plan` alanı)
 - PDF dışa aktarma (defter görünümünü koru)
 - Vade bildirimleri (Notification API, izin akışıyla)

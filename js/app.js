@@ -18,8 +18,10 @@
     filtre: "tumu",
     arama: "",
     acikKisiId: null,
-    hareketMod: "borc",       // "borc" | "odeme"
-    duzenlenenHareketId: null // doluysa hareket formu düzenleme modundadır
+    hareketMod: "borc",        // "borc" | "odeme"
+    duzenlenenHareketId: null, // doluysa hareket formu düzenleme modundadır
+    kasaTur: "gelir",          // kasa formu: "gelir" | "gider"
+    acikParselNo: null         // parsel atama dialogunun hedefi
   };
 
   /* ---------- Bildirim (geri al destekli) ---------- */
@@ -89,6 +91,8 @@
       if (Store.disYukle(kayit.veri)) {
         if (durum.acikKisiId) cizDetay();
         else if (!$("#ozetGorunum").hidden) UI.ozetCiz();
+        else if (!$("#parselGorunum").hidden) cizParsel();
+        else if (!$("#kasaGorunum").hidden) cizKasa();
         else cizAna();
       }
     }
@@ -106,43 +110,47 @@
   }
 
   /* ---------- Görünüm geçişleri ---------- */
+  const GORUNUMLER = ["#anaGorunum", "#detayGorunum", "#ozetGorunum", "#parselGorunum", "#kasaGorunum"];
+  const EYLEM_GRUPLARI = ["#anaEylemler", "#detayEylemler", "#kasaEylemler"];
+  /* eylemGrubu null ise alt çubuk tamamen gizlenir (salt okunur görünümler) */
+  function gorunumAc(secici, eylemGrubu) {
+    GORUNUMLER.forEach(s => { $(s).hidden = s !== secici; });
+    $("#altEylem").hidden = !eylemGrubu;
+    EYLEM_GRUPLARI.forEach(s => { $(s).hidden = s !== eylemGrubu; });
+    gecisOynat($(secici));
+    window.scrollTo(0, 0);
+  }
   function anaGoster() {
     durum.acikKisiId = null;
-    $("#detayGorunum").hidden = true;
-    $("#ozetGorunum").hidden = true;
-    $("#anaGorunum").hidden = false;
-    $("#altEylem").hidden = false;
-    $("#detayEylemler").hidden = true;
-    $("#anaEylemler").hidden = false;
+    gorunumAc("#anaGorunum", "#anaEylemler");
     listeCanlandir($("#kisiListe"));
     cizAna();
-    gecisOynat($("#anaGorunum"));
-    window.scrollTo(0, 0);
   }
   function detayGoster(kisiId) {
     durum.acikKisiId = kisiId;
-    $("#anaGorunum").hidden = true;
-    $("#ozetGorunum").hidden = true;
-    $("#detayGorunum").hidden = false;
-    $("#altEylem").hidden = false;
-    $("#anaEylemler").hidden = true;
-    $("#detayEylemler").hidden = false;
+    gorunumAc("#detayGorunum", "#detayEylemler");
     listeCanlandir($("#hareketListe"));
     cizDetay();
-    gecisOynat($("#detayGorunum"));
     $("#detayAd").focus();
-    window.scrollTo(0, 0);
   }
   function ozetGoster() {
     durum.acikKisiId = null;
-    $("#anaGorunum").hidden = true;
-    $("#detayGorunum").hidden = true;
-    $("#ozetGorunum").hidden = false;
-    $("#altEylem").hidden = true; // özet salt okunurdur
+    gorunumAc("#ozetGorunum", null); // özet salt okunurdur
     UI.ozetCiz();
-    gecisOynat($("#ozetGorunum"));
     $("#ozetBaslik").focus();
-    window.scrollTo(0, 0);
+  }
+  function parselGoster() {
+    durum.acikKisiId = null;
+    gorunumAc("#parselGorunum", null); // atama ızgaradaki parsele dokunarak yapılır
+    cizParsel();
+    $("#parselBaslik").focus();
+  }
+  function kasaGoster() {
+    durum.acikKisiId = null;
+    gorunumAc("#kasaGorunum", "#kasaEylemler");
+    listeCanlandir($("#kasaListe"));
+    cizKasa();
+    $("#kasaBaslik").focus();
   }
 
   /* ---------- Render sarmalayıcıları ---------- */
@@ -170,6 +178,21 @@
       }
     });
     if (!ok) anaGoster();
+  }
+  function cizParsel() {
+    UI.parselCiz({ parselTiklandi: parselDialogAc });
+  }
+  function cizKasa() {
+    UI.kasaCiz({
+      kayitSilIstendi(h) {
+        Store.kasaSil(h.id);
+        cizKasa();
+        bildir("Kayıt silindi.", () => {
+          Store.kasaGeriAl(h);
+          if (!$("#kasaGorunum").hidden) cizKasa();
+        });
+      }
+    });
   }
 
   /* ---------- Çıkış ---------- */
@@ -199,9 +222,10 @@
 
   /* ---------- Hareket formu ---------- */
   const hareketDialog = $("#hareketDialog");
+  /* Etiketlerdeki işaret kasa yönüdür: + kasaya girer, − kasadan çıkar */
   const YONLER = {
-    borc:  [["borc-verdim", "Borç verdim"], ["borc-aldim", "Borç aldım"]],
-    odeme: [["odeme-aldim", "Ödeme aldım"], ["odeme-yaptim", "Ödeme yaptım"]]
+    borc:  [["borc-verdim", "Borç verdim (−)"], ["borc-aldim", "Borç aldım (+)"]],
+    odeme: [["odeme-aldim", "Ödeme aldım (+)"], ["odeme-yaptim", "Ödeme yaptım (−)"]]
   };
   /* hareket doluysa düzenleme modu; kisiSecimi true ise (ana ekrandan açılış)
      formda kişi seçici gösterilir ve hareket seçilen kişiye atanır. */
@@ -299,6 +323,169 @@
     b.addEventListener("click", () => b.closest("dialog").close());
   });
 
+  /* ---------- Parseller: atama ---------- */
+  const parselDialog = $("#parselDialog");
+  function parselDialogAc(no) {
+    durum.acikParselNo = no;
+    $("#parselDlgBaslik").textContent = "Parsel " + no;
+    const sec = $("#parselKisi");
+    sec.innerHTML = "";
+    const bos = document.createElement("option");
+    bos.value = "";
+    bos.textContent = "— Atanmamış (pasif) —";
+    sec.appendChild(bos);
+    [...Store.kisiler()]
+      .sort((a, b) => a.ad.localeCompare(b.ad, "tr"))
+      .forEach(k => {
+        const o = document.createElement("option");
+        o.value = k.id;
+        o.textContent = k.ad;
+        sec.appendChild(o);
+      });
+    sec.value = Store.parselSahibi(no) || "";
+    parselDialog.showModal();
+  }
+  $("#parselForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const no = durum.acikParselNo;
+    const kisiId = $("#parselKisi").value || null;
+    if (!Store.parselAta(no, kisiId)) return;
+    parselDialog.close();
+    cizParsel();
+    const k = kisiId ? Store.kisiBul(kisiId) : null;
+    bildir(k ? `Parsel ${no} → "${k.ad}" (aktif).` : `Parsel ${no} boşaltıldı (pasif).`);
+  });
+
+  /* ---------- Kasa: gelir/gider formu ---------- */
+  const kasaDialog = $("#kasaDialog");
+  function kasaFormuAc(tur) {
+    durum.kasaTur = tur;
+    $("#kasaFormBaslik").textContent = tur === "gelir" ? "Gelir ekle" : "Gider ekle";
+    $("#kasaForm").reset();
+    $("#kTarih").value = Store.bugunISO();
+    const kisiSec = $("#kKisi");
+    kisiSec.innerHTML = "";
+    const bosK = document.createElement("option");
+    bosK.value = "";
+    bosK.textContent = "—";
+    kisiSec.appendChild(bosK);
+    [...Store.kisiler()]
+      .sort((a, b) => a.ad.localeCompare(b.ad, "tr"))
+      .forEach(k => {
+        const o = document.createElement("option");
+        o.value = k.id;
+        o.textContent = k.ad;
+        kisiSec.appendChild(o);
+      });
+    const parselSec = $("#kParsel");
+    parselSec.innerHTML = "";
+    const bosP = document.createElement("option");
+    bosP.value = "";
+    bosP.textContent = "—";
+    parselSec.appendChild(bosP);
+    for (const p of Store.parseller()) {
+      const sahip = p.kisiId ? Store.kisiBul(p.kisiId) : null;
+      const o = document.createElement("option");
+      o.value = p.no;
+      o.textContent = "Parsel " + p.no + (sahip ? " · " + sahip.ad : "");
+      parselSec.appendChild(o);
+    }
+    kasaDialog.showModal();
+  }
+  $("#gelirEkleBtn").addEventListener("click", () => kasaFormuAc("gelir"));
+  $("#giderEkleBtn").addEventListener("click", () => kasaFormuAc("gider"));
+  $("#kasaForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const kayit = Store.kasaEkle({
+      tur: durum.kasaTur,
+      tutar: parseFloat($("#kTutar").value),
+      tarih: $("#kTarih").value,
+      aciklama: $("#kAciklama").value,
+      kisiId: $("#kKisi").value || null,
+      parselNo: $("#kParsel").value || null
+    });
+    if (!kayit) return;
+    kasaDialog.close();
+    cizKasa();
+    cizAna(); // ana ekrandaki kasa toplamı da değişti
+    bildir(durum.kasaTur === "gelir" ? "Gelir kasaya işlendi." : "Gider kasadan düşüldü.");
+  });
+
+  /* ---------- Toplu borç (kişi ve parsel seçimiyle) ---------- */
+  const topluDialog = $("#topluDialog");
+  function topluFormuAc() {
+    if (Store.kisiler().length === 0) {
+      bildir("Önce bir kişi ekle — toplu borç kişilere işlenir.");
+      $("#kisiForm").reset();
+      kisiDialog.showModal();
+      return;
+    }
+    $("#topluForm").reset();
+    $("#topluHata").hidden = true;
+    $("#tTarih").value = Store.bugunISO();
+
+    const kKutu = $("#topluKisiler");
+    kKutu.innerHTML = "";
+    [...Store.kisiler()]
+      .sort((a, b) => a.ad.localeCompare(b.ad, "tr"))
+      .forEach(k => {
+        const l = document.createElement("label");
+        const c = document.createElement("input");
+        c.type = "checkbox"; c.name = "tkisi"; c.value = k.id;
+        l.appendChild(c);
+        l.appendChild(document.createTextNode(" " + k.ad));
+        kKutu.appendChild(l);
+      });
+
+    const pKutu = $("#topluParseller");
+    pKutu.innerHTML = "";
+    const atanmis = Store.parseller().filter(p => p.kisiId && Store.kisiBul(p.kisiId));
+    if (atanmis.length === 0) {
+      const bos = document.createElement("p");
+      bos.className = "secim-bos";
+      bos.textContent = "Atanmış parsel yok — önce Parseller ekranından atama yap.";
+      pKutu.appendChild(bos);
+    }
+    for (const p of atanmis) {
+      const sahip = Store.kisiBul(p.kisiId);
+      const l = document.createElement("label");
+      const c = document.createElement("input");
+      c.type = "checkbox"; c.name = "tparsel"; c.value = p.no;
+      l.appendChild(c);
+      l.appendChild(document.createTextNode(` ${p.no} · ${sahip.ad}`));
+      pKutu.appendChild(l);
+    }
+    topluDialog.showModal();
+  }
+  $("#topluBtn").addEventListener("click", topluFormuAc);
+  $("#topluForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const hata = $("#topluHata");
+    hata.hidden = true;
+    const kisiIds = [...document.querySelectorAll("#topluKisiler input:checked")].map(c => c.value);
+    const parselNos = [...document.querySelectorAll("#topluParseller input:checked")].map(c => Number(c.value));
+    if (kisiIds.length === 0 && parselNos.length === 0) {
+      hata.textContent = "En az bir kişi veya parsel seç.";
+      hata.hidden = false;
+      return;
+    }
+    const eklenen = Store.topluBorcEkle({
+      kisiIds, parselNos,
+      tur: new FormData(e.target).get("ttur"),
+      tutar: parseFloat($("#tTutar").value),
+      tarih: $("#tTarih").value,
+      vade: $("#tVade").value || null,
+      aciklama: $("#tAciklama").value
+    });
+    if (eklenen.length === 0) return;
+    topluDialog.close();
+    cizAna();
+    bildir(`${eklenen.length} kayıt deftere işlendi.`, () => {
+      for (const { kisiId, hareket } of eklenen) Store.hareketSil(kisiId, hareket.id);
+      if (durum.acikKisiId) cizDetay(); else cizAna();
+    });
+  });
+
   /* ---------- Şifre değiştirme ---------- */
   const sifreDialog = $("#sifreDialog");
   $("#sifreBtn").addEventListener("click", () => {
@@ -339,14 +526,20 @@
   $("#geriBtn").addEventListener("click", anaGoster);
   $("#ozetBtn").addEventListener("click", ozetGoster);
   $("#ozetGeriBtn").addEventListener("click", anaGoster);
+  $("#parselBtn").addEventListener("click", parselGoster);
+  $("#parselGeriBtn").addEventListener("click", anaGoster);
+  $("#kasaBtn").addEventListener("click", kasaGoster);
+  $("#kasaGeriBtn").addEventListener("click", anaGoster);
   $("#kisiSilBtn").addEventListener("click", () => {
     const k = Store.kisiBul(durum.acikKisiId);
     if (!k) return;
     const sira = Store.kisiler().indexOf(k);
+    const parseller = Store.kisiParselleri(k.id); // silmek parselleri pasife düşürür
     Store.kisiSil(k.id);
     anaGoster();
     bildir(`"${k.ad}" silindi.`, () => {
       Store.kisiGeriAl(k, sira);
+      for (const no of parseller) Store.parselAta(no, k.id);
       cizAna();
     });
   });

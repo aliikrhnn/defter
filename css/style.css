@@ -321,6 +321,58 @@ fieldset.yontur legend{font-weight:600;font-size:.86rem;margin-bottom:6px}
 .ozet-tablo tfoot td.y{color:var(--alacak)}
 .ozet-tablo tfoot td.k{color:var(--borc)}
 
+/* ============ 12c. Parseller (1-63 ızgara: aktif/pasif) ============ */
+.parsel-ozet{font-family:var(--rakam);font-size:.82rem;color:var(--soluk);padding:10px 0 0}
+.parsel-lejant{display:flex;gap:18px;flex-wrap:wrap;font-size:.8rem;color:var(--soluk);padding:8px 0 0}
+.parsel-lejant span{display:inline-flex;align-items:center;gap:6px}
+.lejant-kutu{width:13px;height:13px;border-radius:4px;flex-shrink:0}
+.lejant-kutu.aktif{background:var(--murekkep)}
+.lejant-kutu.pasif{border:1px dashed var(--cizgi-koyu)}
+.parsel-izgara{
+  list-style:none;display:grid;gap:8px;padding:16px 0;
+  grid-template-columns:repeat(auto-fill,minmax(64px,1fr));
+}
+.parsel{
+  width:100%;min-height:56px;padding:6px 4px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  border-radius:var(--r);cursor:pointer;font:inherit;
+  transition:transform .12s ease-out,border-color .15s ease-out,box-shadow .15s ease-out;
+  -webkit-tap-highlight-color:transparent;
+}
+.parsel .p-no{font-family:var(--rakam);font-weight:600;font-size:1rem}
+.parsel .p-ad{
+  font-size:.6rem;font-weight:600;max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.parsel.aktif{background:var(--murekkep);color:var(--kagit);border:1px solid var(--murekkep)}
+.parsel.aktif:hover{box-shadow:0 3px 10px rgba(26,28,30,.22)}
+.parsel.pasif{background:transparent;color:var(--soluk);border:1px dashed var(--cizgi-koyu)}
+.parsel.pasif:hover{border-color:var(--murekkep);color:var(--murekkep)}
+.parsel:active{transform:scale(.94)}
+
+/* hareket satırında parsel rozeti */
+.parsel-rozet{
+  display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.03em;
+  padding:1px 8px;border-radius:99px;background:#F2F1ED;color:var(--soluk);
+  vertical-align:1px;
+}
+
+/* ============ 12d. Kasa görünümü + toplu seçim listeleri ============ */
+.kasa-ipucu{font-size:.8rem;color:var(--soluk);padding:10px 0 0}
+.secim-liste{
+  display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;
+  max-height:216px;overflow-y:auto;
+  border:1px solid var(--cizgi);border-radius:var(--r);padding:6px 10px;background:#fff;
+}
+.secim-liste.secim-parsel{grid-template-columns:1fr 1fr 1fr}
+.secim-liste label{
+  display:flex;align-items:center;gap:8px;cursor:pointer;
+  font-size:.86rem;font-weight:600;min-height:var(--dokunma);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.secim-liste input{accent-color:var(--murekkep);width:17px;height:17px;flex-shrink:0}
+.secim-bos{grid-column:1/-1;font-size:.84rem;color:var(--soluk);padding:8px 0}
+
 /* ============ 13. Hareket: görünüm geçişleri ve liste girişleri ============
    Yalnızca transform/opacity canlandırılır (kompozitör dostu).
    prefers-reduced-motion taban kuralı tümünü kapatır. */

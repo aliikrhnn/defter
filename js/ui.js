@@ -36,9 +36,10 @@ const UI = (() => {
       const n = Store.kisiNet(k);
       if (n > 0) alacakT += n; else if (n < 0) borcT += -n;
     }
-    const net = alacakT - borcT;
+    /* Büyük rakam kasadır: tüm hareketler + gelir/gider, kasa işaretiyle */
+    const kasa = Store.kasaNet();
     const netEl = $("#netTutar");
-    tutarYaz(netEl, net, para(net), "tutar " + (net > 0 ? "poz" : net < 0 ? "neg" : ""));
+    tutarYaz(netEl, kasa, para(kasa), "tutar " + (kasa > 0 ? "poz" : kasa < 0 ? "neg" : ""));
     $("#ozAlacak").textContent = para(alacakT);
     $("#ozBorc").textContent = para(borcT);
 
@@ -106,6 +107,9 @@ const UI = (() => {
     $("#detayAd").textContent = k.ad;
     $("#detayNot").textContent = k.not || "";
     $("#detayNot").hidden = !k.not;
+    const parseller = Store.kisiParselleri(kisiId);
+    $("#detayParsel").textContent = parseller.length ? "Parsel: " + parseller.join(", ") : "";
+    $("#detayParsel").hidden = !parseller.length;
 
     const n = Store.kisiNet(k);
     const netEl = $("#detayNet");
@@ -131,7 +135,7 @@ const UI = (() => {
       li.innerHTML = `
         <time class="gun" datetime="${h.tarih}">${tarihKisa(h.tarih)}</time>
         <span class="orta">
-          <span class="tur">${Store.TUR_AD[h.tur]}</span>
+          <span class="tur">${Store.TUR_AD[h.tur]}${h.parselNo ? ` <span class="parsel-rozet">Parsel ${Number(h.parselNo)}</span>` : ""}</span>
           ${h.aciklama ? `<span class="aciklama"></span>` : ""}
           ${h.vade ? `<span class="vade ${h.vade < bugun ? "gecmis" : "normal"}">Vade: ${tarihUzun(h.vade)}${h.vade < bugun ? " · geçti" : ""}</span>` : ""}
         </span>
@@ -206,5 +210,81 @@ const UI = (() => {
     $("#ozetTopNet").className = topAlacak - topBorc > 0 ? "y" : topAlacak - topBorc < 0 ? "k" : "";
   }
 
-  return { anaCiz, detayCiz, ozetCiz, para };
+  /* ---------- Parseller (1-63 ızgara: aktif = atanmış, pasif = boş) ---------- */
+  function parselCiz({ parselTiklandi }) {
+    const izgara = $("#parselIzgara");
+    izgara.innerHTML = "";
+    let aktif = 0;
+    const tum = Store.parseller();
+    for (const p of tum) {
+      const sahip = p.kisiId ? Store.kisiBul(p.kisiId) : null;
+      if (sahip) aktif++;
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "parsel " + (sahip ? "aktif" : "pasif");
+      const noEl = document.createElement("span");
+      noEl.className = "p-no";
+      noEl.textContent = p.no;
+      btn.appendChild(noEl);
+      if (sahip) {
+        const adEl = document.createElement("span");
+        adEl.className = "p-ad";
+        adEl.textContent = sahip.ad;
+        btn.appendChild(adEl);
+      }
+      btn.setAttribute("aria-label",
+        `Parsel ${p.no}, ${sahip ? "aktif — " + sahip.ad : "pasif — atanmamış"}`);
+      btn.addEventListener("click", () => parselTiklandi(p.no));
+      li.appendChild(btn);
+      izgara.appendChild(li);
+    }
+    $("#parselOzet").textContent = `${aktif} aktif · ${tum.length - aktif} pasif`;
+  }
+
+  /* ---------- Kasa (gelir/gider listesi) ---------- */
+  function kasaCiz({ kayitSilIstendi }) {
+    const kasa = Store.kasaNet();
+    tutarYaz($("#kasaTutar"), kasa, para(kasa),
+      "tutar " + (kasa > 0 ? "poz" : kasa < 0 ? "neg" : ""));
+    const t = Store.kasaToplamlar();
+    $("#kasaGelir").textContent = para(t.gelir);
+    $("#kasaGider").textContent = para(t.gider);
+
+    const ul = $("#kasaListe");
+    ul.innerHTML = "";
+    const sirali = [...Store.kasaListe()].sort((a, b) => b.tarih.localeCompare(a.tarih));
+    $("#kasaBos").hidden = sirali.length > 0;
+
+    let sira = 0;
+    for (const h of sirali) {
+      const isr = Store.KASA_ISARET[h.tur];
+      const kisi = h.kisiId ? Store.kisiBul(h.kisiId) : null;
+      const li = document.createElement("li");
+      li.style.setProperty("--i", Math.min(sira++, 12));
+      li.innerHTML = `
+        <time class="gun" datetime="${h.tarih}">${tarihKisa(h.tarih)}</time>
+        <span class="orta">
+          <span class="tur">${Store.KASA_TUR_AD[h.tur]}${h.parselNo ? ` <span class="parsel-rozet">Parsel ${Number(h.parselNo)}</span>` : ""}</span>
+          ${kisi ? `<span class="aciklama kasa-kisi"></span>` : ""}
+          ${h.aciklama ? `<span class="aciklama"></span>` : ""}
+        </span>
+        <span class="tutarh ${isr > 0 ? "arti" : "eksi"}">${isr > 0 ? "+" : "−"}${para(h.tutar)}</span>
+        <span class="h-eylem">
+          <button type="button" class="h-sil" aria-label="Bu kaydı sil: ${Store.KASA_TUR_AD[h.tur]} ${para(h.tutar)}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M3 4h10M6.5 4V2.5h3V4M5 4l.6 9h4.8L11 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </span>`;
+      const kk = li.querySelector(".kasa-kisi");
+      if (kk) kk.textContent = "Kişi: " + kisi.ad;
+      const ac = li.querySelector(".aciklama:not(.kasa-kisi)");
+      if (ac) ac.textContent = h.aciklama;
+      li.querySelector(".h-sil").addEventListener("click", () => kayitSilIstendi(h));
+      ul.appendChild(li);
+    }
+  }
+
+  return { anaCiz, detayCiz, ozetCiz, parselCiz, kasaCiz, para };
 })();

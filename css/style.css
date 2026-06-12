@@ -166,6 +166,17 @@ header.marka .tarih{font-family:var(--rakam);font-size:.78rem;color:var(--soluk)
 .rozet.gecmis{background:var(--borc-zemin);color:var(--borc)}
 .rozet.yakin{background:var(--uyari-zemin);color:var(--uyari)}
 
+/* "Devamını göster" — uzun listede ilk 10'dan sonrasını açar */
+.devam{
+  width:100%;min-height:48px;
+  background:none;border:0;cursor:pointer;
+  font:600 .88rem var(--govde);color:var(--soluk);
+  -webkit-tap-highlight-color:transparent;
+  transition:color .15s ease-out,background .15s ease-out;
+}
+.devam:hover{color:var(--murekkep);background:#F4F3EF}
+.devam:active{background:#F2F1ED}
+
 /* ============ 7b. Defter araçları (özet / dışa aktar / şifre) ============ */
 .disa{padding:26px 0 0;display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
 .arac{
@@ -349,6 +360,8 @@ fieldset.yontur legend{font-weight:600;font-size:.86rem;margin-bottom:6px}
 .parsel.pasif{background:transparent;color:var(--soluk);border:1px dashed var(--cizgi-koyu)}
 .parsel.pasif:hover{border-color:var(--murekkep);color:var(--murekkep)}
 .parsel:active{transform:scale(.94)}
+
+.parsel-kaldir{display:flex;justify-content:flex-start;margin:-6px 0 4px}
 
 /* hareket satırında parsel rozeti */
 .parsel-rozet{

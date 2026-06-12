@@ -30,7 +30,8 @@ const UI = (() => {
   }
 
   /* ---------- Ana görünüm ---------- */
-  function anaCiz({ filtre, arama, satirTiklandi }) {
+  const LISTE_LIMIT = 10; // ilk gösterilen kişi sayısı; kalanı "Devamını göster" açar
+  function anaCiz({ filtre, arama, satirTiklandi, tumunuGoster, devamiIstendi }) {
     let alacakT = 0, borcT = 0;
     for (const k of Store.kisiler()) {
       const n = Store.kisiNet(k);
@@ -65,8 +66,11 @@ const UI = (() => {
       liste.appendChild(li);
     }
 
+    const gizliSayi = tumunuGoster ? 0 : Math.max(0, goster.length - LISTE_LIMIT);
+    const gorunur = gizliSayi > 0 ? goster.slice(0, LISTE_LIMIT) : goster;
+
     let sira = 0;
-    for (const k of goster) {
+    for (const k of gorunur) {
       const n = Store.kisiNet(k);
       const vd = Store.vadeDurumu(k);
       const son = Store.sonTarih(k);
@@ -94,6 +98,17 @@ const UI = (() => {
           : n < 0 ? "ona " + para(-n) + " borçlusun" : "hesap kapalı"}` +
         (vd && vd.tip === "gecmis" ? ", vadesi geçti" : ""));
       btn.addEventListener("click", () => satirTiklandi(k.id));
+      li.appendChild(btn);
+      liste.appendChild(li);
+    }
+
+    if (gizliSayi > 0) {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "devam";
+      btn.textContent = `Devamını göster (${gizliSayi} kişi daha)`;
+      btn.addEventListener("click", devamiIstendi);
       li.appendChild(btn);
       liste.appendChild(li);
     }

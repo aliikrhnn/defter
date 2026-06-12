@@ -21,7 +21,8 @@
     hareketMod: "borc",        // "borc" | "odeme"
     duzenlenenHareketId: null, // doluysa hareket formu düzenleme modundadır
     kasaTur: "gelir",          // kasa formu: "gelir" | "gider"
-    acikParselNo: null         // parsel atama dialogunun hedefi
+    acikParselNo: null,        // parsel atama dialogunun hedefi
+    tumunuGoster: false        // ana liste: ilk 10'dan fazlası açık mı
   };
 
   /* ---------- Bildirim (geri al destekli) ---------- */
@@ -122,6 +123,7 @@
   }
   function anaGoster() {
     durum.acikKisiId = null;
+    durum.tumunuGoster = false; // dönüşte liste yine 10'a katlanır
     gorunumAc("#anaGorunum", "#anaEylemler");
     listeCanlandir($("#kisiListe"));
     cizAna();
@@ -158,7 +160,12 @@
     UI.anaCiz({
       filtre: durum.filtre,
       arama: durum.arama,
-      satirTiklandi: detayGoster
+      satirTiklandi: detayGoster,
+      tumunuGoster: durum.tumunuGoster,
+      devamiIstendi() {
+        durum.tumunuGoster = true;
+        cizAna();
+      }
     });
   }
   function cizDetay() {
@@ -343,8 +350,20 @@
         sec.appendChild(o);
       });
     sec.value = Store.parselSahibi(no) || "";
+    $("#parselKaldirBtn").hidden = !Store.parselSahibi(no);
     parselDialog.showModal();
   }
+  $("#parselKaldirBtn").addEventListener("click", () => {
+    const no = durum.acikParselNo;
+    const eskiSahip = Store.parselSahibi(no);
+    if (!eskiSahip || !Store.parselAta(no, null)) return;
+    parselDialog.close();
+    cizParsel();
+    bildir(`Parsel ${no} boşaltıldı (pasif).`, () => {
+      Store.parselAta(no, eskiSahip);
+      if (!$("#parselGorunum").hidden) cizParsel();
+    });
+  });
   $("#parselForm").addEventListener("submit", e => {
     e.preventDefault();
     const no = durum.acikParselNo;
@@ -623,11 +642,13 @@
   });
   $("#aramaKutu").addEventListener("input", e => {
     durum.arama = e.target.value;
+    durum.tumunuGoster = false;
     cizAna();
   });
   document.querySelectorAll(".segment button").forEach(b => {
     b.addEventListener("click", () => {
       durum.filtre = b.dataset.f;
+      durum.tumunuGoster = false;
       document.querySelectorAll(".segment button")
         .forEach(x => x.setAttribute("aria-pressed", String(x === b)));
       cizAna();

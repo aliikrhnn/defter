@@ -486,6 +486,73 @@
     });
   });
 
+  /* ---------- Toplu gider (kişi ve parsel seçimiyle, kasaya işler) ---------- */
+  const topluGiderDialog = $("#topluGiderDialog");
+  function topluGiderFormuAc() {
+    $("#topluGiderForm").reset();
+    $("#topluGiderHata").hidden = true;
+    $("#gTarih").value = Store.bugunISO();
+
+    const kKutu = $("#topluGiderKisiler");
+    kKutu.innerHTML = "";
+    if (Store.kisiler().length === 0) {
+      const bos = document.createElement("p");
+      bos.className = "secim-bos";
+      bos.textContent = "Kayıtlı kişi yok.";
+      kKutu.appendChild(bos);
+    }
+    [...Store.kisiler()]
+      .sort((a, b) => a.ad.localeCompare(b.ad, "tr"))
+      .forEach(k => {
+        const l = document.createElement("label");
+        const c = document.createElement("input");
+        c.type = "checkbox"; c.name = "gkisi"; c.value = k.id;
+        l.appendChild(c);
+        l.appendChild(document.createTextNode(" " + k.ad));
+        kKutu.appendChild(l);
+      });
+
+    /* Gider parselin sahibine işlemez (yalnız not) — tüm parseller seçilebilir */
+    const pKutu = $("#topluGiderParseller");
+    pKutu.innerHTML = "";
+    for (const p of Store.parseller()) {
+      const sahip = p.kisiId ? Store.kisiBul(p.kisiId) : null;
+      const l = document.createElement("label");
+      const c = document.createElement("input");
+      c.type = "checkbox"; c.name = "gparsel"; c.value = p.no;
+      l.appendChild(c);
+      l.appendChild(document.createTextNode(sahip ? ` ${p.no} · ${sahip.ad}` : ` ${p.no}`));
+      pKutu.appendChild(l);
+    }
+    topluGiderDialog.showModal();
+  }
+  $("#topluGiderBtn").addEventListener("click", topluGiderFormuAc);
+  $("#topluGiderForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const hata = $("#topluGiderHata");
+    hata.hidden = true;
+    const kisiIds = [...document.querySelectorAll("#topluGiderKisiler input:checked")].map(c => c.value);
+    const parselNos = [...document.querySelectorAll("#topluGiderParseller input:checked")].map(c => Number(c.value));
+    if (kisiIds.length === 0 && parselNos.length === 0) {
+      hata.textContent = "En az bir kişi veya parsel seç.";
+      hata.hidden = false;
+      return;
+    }
+    const eklenen = Store.topluGiderEkle({
+      kisiIds, parselNos,
+      tutar: parseFloat($("#gTutar").value),
+      tarih: $("#gTarih").value,
+      aciklama: $("#gAciklama").value
+    });
+    if (eklenen.length === 0) return;
+    topluGiderDialog.close();
+    cizAna();
+    bildir(`${eklenen.length} gider kasadan düşüldü.`, () => {
+      for (const h of eklenen) Store.kasaSil(h.id);
+      if (!$("#kasaGorunum").hidden) cizKasa(); else cizAna();
+    });
+  });
+
   /* ---------- Şifre değiştirme ---------- */
   const sifreDialog = $("#sifreDialog");
   $("#sifreBtn").addEventListener("click", () => {

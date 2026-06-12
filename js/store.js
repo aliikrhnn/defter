@@ -231,6 +231,30 @@ const Store = (() => {
     return eklenen;
   }
 
+  /* Toplu gider: seçilen her kişi ve her parsel için ayrı gider kaydı işler.
+     Gider kişinin alacak/borç dengesine işlemez — kişi/parsel nottur.
+     Geri al için eklenenleri döndürür. */
+  function topluGiderEkle({ kisiIds = [], parselNos = [], tutar, tarih, aciklama }) {
+    if (!(tutar > 0) || !tarih) return [];
+    const eklenen = [];
+    const tek = (kisiId, parselNo) => {
+      const h = {
+        id: uid(), tur: "gider",
+        tutar: Math.round(tutar * 100) / 100,
+        tarih,
+        aciklama: (aciklama || "").trim(),
+        kisiId: kisiId || null,
+        parselNo: parselNo || null
+      };
+      veri.kasa.push(h);
+      eklenen.push(h);
+    };
+    for (const id of kisiIds) { if (kisiBul(id)) tek(id, null); }
+    for (const no of parselNos) tek(null, Number(no));
+    if (eklenen.length) kaydet(veri);
+    return eklenen;
+  }
+
   /* --- Kasa: gelir/gider (kişi ve parsel isteğe bağlı not alanlarıdır) --- */
   function kasaEkle({ tur, tutar, tarih, aciklama, kisiId, parselNo }) {
     if (!KASA_TUR_AD.hasOwnProperty(tur) || !(tutar > 0) || !tarih) return null;
@@ -303,7 +327,7 @@ const Store = (() => {
     kasaNet, kasaToplamlar, kasaListe,
     parseller, parselSahibi, kisiParselleri, parselAta,
     kisiEkle, kisiSil, hareketEkle, hareketGuncelle, hareketSil,
-    topluBorcEkle, kasaEkle, kasaSil,
+    topluBorcEkle, topluGiderEkle, kasaEkle, kasaSil,
     kisiGeriAl, hareketGeriAl, kasaGeriAl, csvUret,
     degisimDinle, disYukle, ham
   };

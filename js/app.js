@@ -252,8 +252,8 @@
       ? "Hareketi düzenle"
       : (mod === "borc" ? "Borç ekle" : "Ödeme ekle");
 
-    /* Ana ekrandan ödeme: kişi isteğe bağlı (boş = kasaya işlenir) + parsel notu */
-    const kasaSecenekli = kisiSecimi && mod === "odeme";
+    /* Ana ekrandan borç/ödeme: kişi isteğe bağlı (boş = kasaya işlenir) + parsel notu */
+    const kasaSecenekli = Boolean(kisiSecimi);
     const kisiAlan = $("#hKisiAlan");
     const kisiSec = $("#hKisi");
     kisiAlan.hidden = !kisiSecimi;
@@ -340,11 +340,13 @@
     /* Hedef kişi: detaydaysak açık kişi, ana ekrandan açıldıysa seçilen kişi */
     const hedefKisiId = durum.acikKisiId || $("#hKisi").value;
 
-    /* Ana ekrandan ödeme + kişi seçilmedi → kasaya işle (gelir/gider notu) */
-    if (!hedefKisiId && durum.hareketMod === "odeme" && !durum.duzenlenenHareketId) {
+    /* Ana ekrandan borç/ödeme + kişi seçilmedi → kasaya işle (gelir/gider notu).
+       İşaret kasa bakışı: ISARET<0 kasadan çıkar (gider), >0 kasaya girer (gelir) */
+    if (!hedefKisiId && !durum.duzenlenenHareketId) {
       const tur = new FormData(e.target).get("tur");
+      const kasaTur = Store.ISARET[tur] < 0 ? "gider" : "gelir";
       const kayit = Store.kasaEkle({
-        tur: tur === "odeme-yaptim" ? "gider" : "gelir",
+        tur: kasaTur,
         tutar: parseFloat($("#hTutar").value),
         tarih: $("#hTarih").value,
         aciklama: $("#hAciklama").value,
@@ -354,9 +356,9 @@
       if (!kayit) return;
       hareketDialog.close();
       cizAna();
-      bildir(tur === "odeme-yaptim"
-        ? "Kasadan ödeme işlendi."
-        : "Kasaya tahsilat işlendi.");
+      bildir(kasaTur === "gider"
+        ? "Kasadan çıkış işlendi."
+        : "Kasaya giriş işlendi.");
       return;
     }
 

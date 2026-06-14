@@ -99,7 +99,7 @@ Kurallar:
 - ✅ Supabase ile senkron + gerçek auth (`js/bulut.js`)
 - ✅ Parsel sistemi (1–63, kişiye atama, aktif/pasif ızgara — şema v2)
 - ✅ Kasa: gelir/gider kayıtları + kasa toplamı ana ekranda (şema v2)
-- ✅ Toplu borç ve toplu gider ekleme (kişi ve parsel seçimiyle, geri al destekli)
+- ✅ Toplu borç, toplu gider ve toplu gelir ekleme (kişi ve parsel seçimiyle, geri al destekli)
 - Taksit / kısmi ödeme planı (hareket şemasına `plan` alanı)
 - PDF dışa aktarma (defter görünümünü koru)
 - Vade bildirimleri (Notification API, izin akışıyla)

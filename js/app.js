@@ -630,6 +630,73 @@
     });
   });
 
+  /* ---------- Toplu gelir (kişi ve parsel seçimiyle, kasaya işler) ---------- */
+  const topluGelirDialog = $("#topluGelirDialog");
+  function topluGelirFormuAc() {
+    $("#topluGelirForm").reset();
+    $("#topluGelirHata").hidden = true;
+    $("#glTarih").value = Store.bugunISO();
+
+    const kKutu = $("#topluGelirKisiler");
+    kKutu.innerHTML = "";
+    if (Store.kisiler().length === 0) {
+      const bos = document.createElement("p");
+      bos.className = "secim-bos";
+      bos.textContent = "Kayıtlı kişi yok.";
+      kKutu.appendChild(bos);
+    }
+    [...Store.kisiler()]
+      .sort((a, b) => a.ad.localeCompare(b.ad, "tr"))
+      .forEach(k => {
+        const l = document.createElement("label");
+        const c = document.createElement("input");
+        c.type = "checkbox"; c.name = "glkisi"; c.value = k.id;
+        l.appendChild(c);
+        l.appendChild(document.createTextNode(" " + k.ad));
+        kKutu.appendChild(l);
+      });
+
+    /* Gelir parselin sahibine işlemez (yalnız not) — tüm parseller seçilebilir */
+    const pKutu = $("#topluGelirParseller");
+    pKutu.innerHTML = "";
+    for (const p of Store.parseller()) {
+      const sahip = p.kisiId ? Store.kisiBul(p.kisiId) : null;
+      const l = document.createElement("label");
+      const c = document.createElement("input");
+      c.type = "checkbox"; c.name = "glparsel"; c.value = p.no;
+      l.appendChild(c);
+      l.appendChild(document.createTextNode(sahip ? ` ${p.no} · ${sahip.ad}` : ` ${p.no}`));
+      pKutu.appendChild(l);
+    }
+    topluGelirDialog.showModal();
+  }
+  $("#topluGelirBtn").addEventListener("click", topluGelirFormuAc);
+  $("#topluGelirForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const hata = $("#topluGelirHata");
+    hata.hidden = true;
+    const kisiIds = [...document.querySelectorAll("#topluGelirKisiler input:checked")].map(c => c.value);
+    const parselNos = [...document.querySelectorAll("#topluGelirParseller input:checked")].map(c => Number(c.value));
+    if (kisiIds.length === 0 && parselNos.length === 0) {
+      hata.textContent = "En az bir kişi veya parsel seç.";
+      hata.hidden = false;
+      return;
+    }
+    const eklenen = Store.topluGelirEkle({
+      kisiIds, parselNos,
+      tutar: parseFloat($("#glTutar").value),
+      tarih: $("#glTarih").value,
+      aciklama: $("#glAciklama").value
+    });
+    if (eklenen.length === 0) return;
+    topluGelirDialog.close();
+    cizAna();
+    bildir(`${eklenen.length} gelir kasaya işlendi.`, () => {
+      for (const h of eklenen) Store.kasaSil(h.id);
+      if (!$("#kasaGorunum").hidden) cizKasa(); else cizAna();
+    });
+  });
+
   /* ---------- Şifre değiştirme ---------- */
   const sifreDialog = $("#sifreDialog");
   $("#sifreBtn").addEventListener("click", () => {

@@ -105,6 +105,12 @@
         </svg>
         Toplu gider
       </button>
+      <button type="button" class="arac" id="topluGelirBtn">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M3 4.5h7M3 8h7M3 11.5h7M12.5 6.5v5M15 9h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        Toplu gelir
+      </button>
       <button type="button" class="arac" id="sifreBtn">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <circle cx="5" cy="8" r="2.6" stroke="currentColor" stroke-width="1.8"/>
@@ -457,6 +463,41 @@
       <div class="secim-liste secim-parsel" id="topluGiderParseller"></div>
     </fieldset>
     <p class="giris-hata" id="topluGiderHata" role="alert" hidden></p>
+
+    <div class="form-eylem">
+      <button type="button" class="btn btn-cerceve" data-kapat>Vazgeç</button>
+      <button type="submit" class="btn btn-ana" value="kaydet">Kaydet</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ======== TOPLU GELİR FORMU ======== -->
+<dialog id="topluGelirDialog" aria-labelledby="topluGelirBaslik">
+  <form class="form" id="topluGelirForm" novalidate>
+    <h2 id="topluGelirBaslik">Toplu gelir ekle</h2>
+
+    <div class="alan">
+      <label for="glTutar">Tutar (₺) <span class="ipucu">— seçilen her kişi/parsel için ayrı gelir işlenir</span></label>
+      <input id="glTutar" name="tutar" type="number" inputmode="decimal" min="0.01" step="0.01" required>
+    </div>
+    <div class="alan">
+      <label for="glTarih">Tarih</label>
+      <input id="glTarih" name="tarih" type="date" required>
+    </div>
+    <div class="alan">
+      <label for="glAciklama">Açıklama <span class="ipucu">— isteğe bağlı</span></label>
+      <textarea id="glAciklama" name="aciklama" maxlength="200" placeholder="ör. ortak gelir paylaşımı"></textarea>
+    </div>
+
+    <fieldset class="yontur alan">
+      <legend>Kişiler <span class="ipucu">— gelir kişinin alacağına işlemez, yalnız kasaya girer</span></legend>
+      <div class="secim-liste" id="topluGelirKisiler"></div>
+    </fieldset>
+    <fieldset class="yontur alan">
+      <legend>Parseller</legend>
+      <div class="secim-liste secim-parsel" id="topluGelirParseller"></div>
+    </fieldset>
+    <p class="giris-hata" id="topluGelirHata" role="alert" hidden></p>
 
     <div class="form-eylem">
       <button type="button" class="btn btn-cerceve" data-kapat>Vazgeç</button>

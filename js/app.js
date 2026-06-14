@@ -252,12 +252,20 @@
       ? "Hareketi düzenle"
       : (mod === "borc" ? "Borç ekle" : "Ödeme ekle");
 
+    /* Ana ekrandan ödeme: kişi isteğe bağlı (boş = kasaya işlenir) + parsel notu */
+    const kasaSecenekli = kisiSecimi && mod === "odeme";
     const kisiAlan = $("#hKisiAlan");
     const kisiSec = $("#hKisi");
     kisiAlan.hidden = !kisiSecimi;
-    kisiSec.required = Boolean(kisiSecimi);
+    kisiSec.required = Boolean(kisiSecimi) && !kasaSecenekli;
     kisiSec.innerHTML = "";
     if (kisiSecimi) {
+      if (kasaSecenekli) {
+        const bos = document.createElement("option");
+        bos.value = "";
+        bos.textContent = "— Kişi yok (kasaya işlenir)";
+        kisiSec.appendChild(bos);
+      }
       [...Store.kisiler()]
         .sort((a, b) => a.ad.localeCompare(b.ad, "tr"))
         .forEach(k => {
@@ -266,6 +274,24 @@
           sec.textContent = k.ad;
           kisiSec.appendChild(sec);
         });
+    }
+
+    const parselAlan = $("#hParselAlan");
+    const parselSec = $("#hParsel");
+    parselAlan.hidden = !kasaSecenekli;
+    parselSec.innerHTML = "";
+    if (kasaSecenekli) {
+      const bosP = document.createElement("option");
+      bosP.value = "";
+      bosP.textContent = "—";
+      parselSec.appendChild(bosP);
+      for (const p of Store.parseller()) {
+        const sahip = p.kisiId ? Store.kisiBul(p.kisiId) : null;
+        const o = document.createElement("option");
+        o.value = p.no;
+        o.textContent = "Parsel " + p.no + (sahip ? " · " + sahip.ad : "");
+        parselSec.appendChild(o);
+      }
     }
 
     const kutu = $("#yonSecim");
@@ -313,6 +339,27 @@
     e.preventDefault();
     /* Hedef kişi: detaydaysak açık kişi, ana ekrandan açıldıysa seçilen kişi */
     const hedefKisiId = durum.acikKisiId || $("#hKisi").value;
+
+    /* Ana ekrandan ödeme + kişi seçilmedi → kasaya işle (gelir/gider notu) */
+    if (!hedefKisiId && durum.hareketMod === "odeme" && !durum.duzenlenenHareketId) {
+      const tur = new FormData(e.target).get("tur");
+      const kayit = Store.kasaEkle({
+        tur: tur === "odeme-yaptim" ? "gider" : "gelir",
+        tutar: parseFloat($("#hTutar").value),
+        tarih: $("#hTarih").value,
+        aciklama: $("#hAciklama").value,
+        kisiId: null,
+        parselNo: $("#hParsel").value || null
+      });
+      if (!kayit) return;
+      hareketDialog.close();
+      cizAna();
+      bildir(tur === "odeme-yaptim"
+        ? "Kasadan ödeme işlendi."
+        : "Kasaya tahsilat işlendi.");
+      return;
+    }
+
     const hedefKisi = Store.kisiBul(hedefKisiId);
     if (!hedefKisi) return;
     const alanlar = {

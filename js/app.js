@@ -482,16 +482,10 @@
       parselNo: $("#kParsel").value || null
     });
     if (!kayit) return;
-    const kisiSecildi = Boolean($("#kKisi").value);
     kasaDialog.close();
     cizKasa();
     cizAna(); // ana ekrandaki kasa toplamı da değişti
-    if (kisiSecildi)
-      bildir(durum.kasaTur === "gelir"
-        ? "Gelir, kişiden ödeme olarak geçmişine işlendi."
-        : "Gider, kişiye ödeme olarak geçmişine işlendi.");
-    else
-      bildir(durum.kasaTur === "gelir" ? "Gelir kasaya işlendi." : "Gider kasadan düşüldü.");
+    bildir(durum.kasaTur === "gelir" ? "Gelir kasaya işlendi." : "Gider kasadan düşüldü.");
   });
 
   /* ---------- Toplu borç (kişi ve parsel seçimiyle) ---------- */

@@ -7,12 +7,7 @@
 
 const Store = (() => {
   const ANAHTAR = "defter-v1";
-  const SURUM = 3;
-
-  /* Gelir/gider kasa türünü kişi hareketine çevirir:
-     gelir → kasaya girer → "ödeme aldım", gider → kasadan çıkar → "ödeme yaptım".
-     (migrasyon ve kasaEkle birlikte kullanır — en üstte tanımlı, TDZ yok.) */
-  const KASA_HAREKET = { gelir: "odeme-aldim", gider: "odeme-yaptim" };
+  const SURUM = 2;
   const PARSEL_SAYISI = 63;
   let bellek = null; // localStorage erişilemezse (gizli mod) bellek yedeği
 
@@ -56,28 +51,6 @@ const Store = (() => {
       v.parseller = v.parseller || {};
       v.kasa = v.kasa || [];
       v.surum = 2;
-    }
-    if (v.surum < 3) {
-      /* Kişiye bağlı eski gelir/gider kasa kayıtlarını o kişinin geçmişine
-         ödeme hareketi olarak taşı (gelir→ödeme aldım, gider→ödeme yaptım).
-         Kişisiz kayıtlar kasada kalır. */
-      const kalan = [];
-      for (const h of (v.kasa || [])) {
-        const k = h.kisiId && (v.kisiler || []).find(x => x.id === h.kisiId);
-        if (k && KASA_HAREKET[h.tur]) {
-          k.hareketler = k.hareketler || [];
-          k.hareketler.push({
-            id: h.id, tur: KASA_HAREKET[h.tur],
-            tutar: h.tutar, tarih: h.tarih, vade: null,
-            aciklama: h.aciklama || "",
-            parselNo: h.parselNo || null
-          });
-        } else {
-          kalan.push(h);
-        }
-      }
-      v.kasa = kalan;
-      v.surum = 3;
     }
     return v;
   }
@@ -258,56 +231,48 @@ const Store = (() => {
     return eklenen;
   }
 
-  /* Toplu kasa (gelir/gider): seçilen kişiye o kişinin geçmişine işleyen bir
-     hareket (gelir→ödeme aldım, gider→ödeme yaptım); seçilen parsele ise yalnız
-     kasa notu (parsel sahibinin dengesine işlemez) yazar. Geri al için tek tip
-     sonuç döndürür: kişi → {tip:"hareket", kisiId, hareket}, parsel → {tip:"kasa", hareket}. */
+  /* Toplu kasa (gelir/gider): seçilen her kişi ve her parsel için ayrı kasa
+     kaydı. Kişi/parsel yalnız nottur; kimsenin alacak/borç dengesine İŞLEMEZ,
+     yalnız kasa toplamına işler. Geri al için tek tip sonuç döndürür:
+     {tip:"kasa", hareket}. */
   function topluKasaEkle(tur, { kisiIds = [], parselNos = [], tutar, tarih, aciklama }) {
     if (!KASA_TUR_AD.hasOwnProperty(tur) || !(tutar > 0) || !tarih) return [];
     const eklenen = [];
-    for (const id of kisiIds) {
-      const h = hareketEkle(id, { tur: KASA_HAREKET[tur], tutar, tarih, aciklama });
-      if (h) eklenen.push({ tip: "hareket", kisiId: id, hareket: h });
-    }
-    for (const no of parselNos) {
+    const tek = (kisiId, parselNo) => {
       const h = {
         id: uid(), tur,
         tutar: Math.round(tutar * 100) / 100,
         tarih,
         aciklama: (aciklama || "").trim(),
-        kisiId: null,
-        parselNo: Number(no)
+        kisiId: kisiId || null,
+        parselNo: parselNo || null
       };
       veri.kasa.push(h);
       eklenen.push({ tip: "kasa", hareket: h });
-    }
+    };
+    for (const id of kisiIds) { if (kisiBul(id)) tek(id, null); }
+    for (const no of parselNos) tek(null, Number(no));
     if (eklenen.length) kaydet(veri);
     return eklenen;
   }
   const topluGiderEkle = (alanlar) => topluKasaEkle("gider", alanlar);
   const topluGelirEkle = (alanlar) => topluKasaEkle("gelir", alanlar);
 
-  /* Toplu kasa sonucunu (kişi hareketi veya kasa kaydı) geri al/sil. */
+  /* Toplu kasa sonucunu geri al/sil. */
   function kasaSonucSil(item) {
-    if (!item) return;
-    if (item.tip === "hareket") hareketSil(item.kisiId, item.hareket.id);
-    else kasaSil(item.hareket.id);
+    if (item && item.hareket) kasaSil(item.hareket.id);
   }
 
-  /* --- Kasa: gelir/gider. Kişi seçilirse o kişinin geçmişine ödeme hareketi
-     olarak işler; kişi yoksa parsel isteğe bağlı not olan bir kasa kaydı olur. --- */
+  /* --- Kasa: gelir/gider. Kişi ve parsel isteğe bağlı NOT alanlarıdır;
+     kişinin alacak/borç dengesine işlemez, yalnız kasa toplamına işler. --- */
   function kasaEkle({ tur, tutar, tarih, aciklama, kisiId, parselNo }) {
     if (!KASA_TUR_AD.hasOwnProperty(tur) || !(tutar > 0) || !tarih) return null;
-    if (kisiId && kisiBul(kisiId))
-      return hareketEkle(kisiId, {
-        tur: KASA_HAREKET[tur], tutar, tarih, aciklama, parselNo
-      });
     const h = {
       id: uid(), tur,
       tutar: Math.round(tutar * 100) / 100,
       tarih,
       aciklama: (aciklama || "").trim(),
-      kisiId: null,
+      kisiId: kisiId || null,
       parselNo: parselNo ? Number(parselNo) : null
     };
     veri.kasa.push(h);

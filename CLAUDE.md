@@ -70,8 +70,11 @@ Kurallar:
   Yeni hareket türü eklerken bu tabloya satır ekle, başka yerde işaret hesaplama.
 - Parseller 1–63 sabittir (`store.js` → `PARSEL_SAYISI`); `veri.parseller` yalnız
   atanmış olanları tutar (no → kisiId). Atanmış = aktif, atanmamış = pasif.
-- Gelir/gider kayıtları `veri.kasa`'da yaşar; kişi/parsel alanları isteğe bağlı
-  nottur, kişinin alacak/borç dengesine İŞLEMEZ — yalnız kasa toplamına işler.
+- Gelir/gider: **kişi seçilirse** o kişinin geçmişine ödeme hareketi olarak işler
+  (`gelir → odeme-aldim`, `gider → odeme-yaptim` — `store.js` → `KASA_HAREKET`);
+  kişinin alacak/borç dengesini değiştirir ve kasaya bir kez yansır. **Kişi yoksa**
+  kayıt `veri.kasa`'da yaşar; parsel isteğe bağlı nottur, kimsenin dengesine işlemez,
+  yalnız kasa toplamına işler. Toplu kasada parsel seçimi de yalnız kasa notudur.
 - Şema değişikliğinde `SURUM`'u artır ve `store.js` içine migration yaz; kullanıcı verisini asla sıfırlama.
 - Kullanıcıdan gelen metni DOM'a daima `textContent` ile yaz (XSS).
 

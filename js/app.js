@@ -482,10 +482,16 @@
       parselNo: $("#kParsel").value || null
     });
     if (!kayit) return;
+    const kisiSecildi = Boolean($("#kKisi").value);
     kasaDialog.close();
     cizKasa();
     cizAna(); // ana ekrandaki kasa toplamı da değişti
-    bildir(durum.kasaTur === "gelir" ? "Gelir kasaya işlendi." : "Gider kasadan düşüldü.");
+    if (kisiSecildi)
+      bildir(durum.kasaTur === "gelir"
+        ? "Gelir, kişiden ödeme olarak geçmişine işlendi."
+        : "Gider, kişiye ödeme olarak geçmişine işlendi.");
+    else
+      bildir(durum.kasaTur === "gelir" ? "Gelir kasaya işlendi." : "Gider kasadan düşüldü.");
   });
 
   /* ---------- Toplu borç (kişi ve parsel seçimiyle) ---------- */
@@ -624,8 +630,8 @@
     if (eklenen.length === 0) return;
     topluGiderDialog.close();
     cizAna();
-    bildir(`${eklenen.length} gider kasadan düşüldü.`, () => {
-      for (const h of eklenen) Store.kasaSil(h.id);
+    bildir(`${eklenen.length} gider işlendi.`, () => {
+      for (const it of eklenen) Store.kasaSonucSil(it);
       if (!$("#kasaGorunum").hidden) cizKasa(); else cizAna();
     });
   });
@@ -691,8 +697,8 @@
     if (eklenen.length === 0) return;
     topluGelirDialog.close();
     cizAna();
-    bildir(`${eklenen.length} gelir kasaya işlendi.`, () => {
-      for (const h of eklenen) Store.kasaSil(h.id);
+    bildir(`${eklenen.length} gelir işlendi.`, () => {
+      for (const it of eklenen) Store.kasaSonucSil(it);
       if (!$("#kasaGorunum").hidden) cizKasa(); else cizAna();
     });
   });

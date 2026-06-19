@@ -71,7 +71,10 @@ Kurallar:
 - Parseller 1–63 sabittir (`store.js` → `PARSEL_SAYISI`); `veri.parseller` yalnız
   atanmış olanları tutar (no → kisiId). Atanmış = aktif, atanmamış = pasif.
 - Gelir/gider kayıtları `veri.kasa`'da yaşar; kişi/parsel alanları isteğe bağlı
-  nottur, kişinin alacak/borç dengesine İŞLEMEZ — yalnız kasa toplamına işler.
+  nottur, kişinin alacak/borç dengesine (`kisiNet`) İŞLEMEZ — yalnız kasa toplamına
+  işler. ANCAK kişi seçilen kasa kaydı, o kişinin **detay hareket listesinde**
+  ("Kasa" rozetiyle, gelir/gider işaretiyle) gösterilir; bakiyeyi değiştirmez.
+  Bu birleştirme yalnız `ui.js` → `detayCiz` içinde yapılır (state değişmez).
 - Şema değişikliğinde `SURUM`'u artır ve `store.js` içine migration yaz; kullanıcı verisini asla sıfırlama.
 - Kullanıcıdan gelen metni DOM'a daima `textContent` ile yaz (XSS).
 

@@ -191,6 +191,15 @@
       hareketDuzenleIstendi(h) {
         const mod = (h.tur === "borc-verdim" || h.tur === "borc-aldim") ? "borc" : "odeme";
         hareketFormuAc(mod, h);
+      },
+      kasaSilIstendi(h) { // kişi detayındaki gelir/gider (kasa) satırının silinmesi
+        Store.kasaSil(h.id);
+        cizDetay();
+        cizAna(); // kasa toplamı değişti
+        bildir("Kayıt silindi.", () => {
+          Store.kasaGeriAl(h);
+          if (durum.acikKisiId) cizDetay(); else cizAna();
+        });
       }
     });
     if (!ok) anaGoster();

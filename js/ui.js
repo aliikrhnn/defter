@@ -183,7 +183,7 @@ const UI = (() => {
   }
 
   /* ---------- Kişi detay ---------- */
-  function detayCiz(kisiId, { hareketSilIstendi, hareketDuzenleIstendi }) {
+  function detayCiz(kisiId, { hareketSilIstendi, hareketDuzenleIstendi, kasaSilIstendi }) {
     const k = Store.kisiBul(kisiId);
     if (!k) return false;
 
@@ -206,30 +206,38 @@ const UI = (() => {
 
     const ul = $("#hareketListe");
     ul.innerHTML = "";
-    const sirali = [...k.hareketler].sort((a, b) => b.tarih.localeCompare(a.tarih));
+    /* Kişinin borç/ödeme hareketleri + bu kişiye not düşülmüş gelir/gider kasa
+       kayıtları birlikte listelenir. Kasa kayıtları bakiyeye İŞLEMEZ (kisiNet
+       sadece hareketleri sayar) — yalnız geçmişte gösterilir ve kasayı etkiler. */
+    const kasalar = Store.kasaListe()
+      .filter(h => h.kisiId === kisiId)
+      .map(h => ({ ...h, kasaMi: true }));
+    const hareketler = k.hareketler.map(h => ({ ...h, kasaMi: false }));
+    const sirali = [...hareketler, ...kasalar].sort((a, b) => b.tarih.localeCompare(a.tarih));
     $("#detayBos").hidden = sirali.length > 0;
 
     const bugun = Store.bugunISO();
     let sira = 0;
     for (const h of sirali) {
-      const isr = Store.ISARET[h.tur];
+      const isr = h.kasaMi ? Store.KASA_ISARET[h.tur] : Store.ISARET[h.tur];
+      const ad = h.kasaMi ? Store.KASA_TUR_AD[h.tur] : Store.TUR_AD[h.tur];
       const li = document.createElement("li");
       li.style.setProperty("--i", Math.min(sira++, 12)); // kademeli giriş animasyonu
       li.innerHTML = `
         <time class="gun" datetime="${h.tarih}">${tarihKisa(h.tarih)}</time>
         <span class="orta">
-          <span class="tur">${Store.TUR_AD[h.tur]}${h.parselNo ? ` <span class="parsel-rozet">Parsel ${Number(h.parselNo)}</span>` : ""}</span>
+          <span class="tur">${ad}${h.kasaMi ? ` <span class="parsel-rozet">Kasa</span>` : ""}${h.parselNo ? ` <span class="parsel-rozet">Parsel ${Number(h.parselNo)}</span>` : ""}</span>
           ${h.aciklama ? `<span class="aciklama"></span>` : ""}
           ${h.vade ? `<span class="vade ${h.vade < bugun ? "gecmis" : "normal"}">Vade: ${tarihUzun(h.vade)}${h.vade < bugun ? " · geçti" : ""}</span>` : ""}
         </span>
         <span class="tutarh ${isr > 0 ? "arti" : "eksi"}">${isr > 0 ? "+" : "−"}${para(h.tutar)}</span>
         <span class="h-eylem">
-          <button type="button" class="h-duzenle" aria-label="Bu hareketi düzenle: ${Store.TUR_AD[h.tur]} ${para(h.tutar)}">
+          ${h.kasaMi ? "" : `<button type="button" class="h-duzenle" aria-label="Bu hareketi düzenle: ${ad} ${para(h.tutar)}">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M9.8 3.1l3.1 3.1M3 13l.7-3.4 7.4-7.4a1.5 1.5 0 012.1 0l1.6 1.6a1.5 1.5 0 010 2.1L7.4 13.3 3 13z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-          </button>
-          <button type="button" class="h-sil" aria-label="Bu hareketi sil: ${Store.TUR_AD[h.tur]} ${para(h.tutar)}">
+          </button>`}
+          <button type="button" class="h-sil" aria-label="Bu kaydı sil: ${ad} ${para(h.tutar)}">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M3 4h10M6.5 4V2.5h3V4M5 4l.6 9h4.8L11 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -237,8 +245,10 @@ const UI = (() => {
         </span>`;
       const ac = li.querySelector(".aciklama");
       if (ac) ac.textContent = h.aciklama;
-      li.querySelector(".h-duzenle").addEventListener("click", () => hareketDuzenleIstendi(h));
-      li.querySelector(".h-sil").addEventListener("click", () => hareketSilIstendi(h));
+      const duzBtn = li.querySelector(".h-duzenle");
+      if (duzBtn) duzBtn.addEventListener("click", () => hareketDuzenleIstendi(h));
+      li.querySelector(".h-sil").addEventListener("click", () =>
+        h.kasaMi ? kasaSilIstendi(h) : hareketSilIstendi(h));
       ul.appendChild(li);
     }
     return true;

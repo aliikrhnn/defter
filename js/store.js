@@ -7,7 +7,12 @@
 
 const Store = (() => {
   const ANAHTAR = "defter-v1";
-  const SURUM = 2;
+  const SURUM = 3;
+
+  /* Gelir/gider kasa türünü kişi hareketine çevirir:
+     gelir → kasaya girer → "ödeme aldım", gider → kasadan çıkar → "ödeme yaptım".
+     (migrasyon ve kasaEkle birlikte kullanır — en üstte tanımlı, TDZ yok.) */
+  const KASA_HAREKET = { gelir: "odeme-aldim", gider: "odeme-yaptim" };
   const PARSEL_SAYISI = 63;
   let bellek = null; // localStorage erişilemezse (gizli mod) bellek yedeği
 
@@ -51,6 +56,28 @@ const Store = (() => {
       v.parseller = v.parseller || {};
       v.kasa = v.kasa || [];
       v.surum = 2;
+    }
+    if (v.surum < 3) {
+      /* Kişiye bağlı eski gelir/gider kasa kayıtlarını o kişinin geçmişine
+         ödeme hareketi olarak taşı (gelir→ödeme aldım, gider→ödeme yaptım).
+         Kişisiz kayıtlar kasada kalır. */
+      const kalan = [];
+      for (const h of (v.kasa || [])) {
+        const k = h.kisiId && (v.kisiler || []).find(x => x.id === h.kisiId);
+        if (k && KASA_HAREKET[h.tur]) {
+          k.hareketler = k.hareketler || [];
+          k.hareketler.push({
+            id: h.id, tur: KASA_HAREKET[h.tur],
+            tutar: h.tutar, tarih: h.tarih, vade: null,
+            aciklama: h.aciklama || "",
+            parselNo: h.parselNo || null
+          });
+        } else {
+          kalan.push(h);
+        }
+      }
+      v.kasa = kalan;
+      v.surum = 3;
     }
     return v;
   }
@@ -230,12 +257,6 @@ const Store = (() => {
     if (eklenen.length) kaydet(veri);
     return eklenen;
   }
-
-  /* Gelir/gider kasa bakışındaki türü kişi hareketine çevirir:
-     gelir → kasaya girer → "ödeme aldım" (kişinin alacağı azalır),
-     gider → kasadan çıkar → "ödeme yaptım". Böylece kişi seçilen
-     gelir/gider o kişinin geçmişine işler ve kasaya bir kez yansır. */
-  const KASA_HAREKET = { gelir: "odeme-aldim", gider: "odeme-yaptim" };
 
   /* Toplu kasa (gelir/gider): seçilen kişiye o kişinin geçmişine işleyen bir
      hareket (gelir→ödeme aldım, gider→ödeme yaptım); seçilen parsele ise yalnız

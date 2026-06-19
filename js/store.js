@@ -91,7 +91,14 @@ const Store = (() => {
   const kisiBul = id => veri.kisiler.find(k => k.id === id) || null;
   /* Alacak bakışı: + kişi bana borçlu, − ben borçluyum (kasa işaretinin tersi) */
   const kisiNet = k => k.hareketler.reduce((t, h) => t - ISARET[h.tur] * h.tutar, 0);
-  const sonTarih = k => k.hareketler.reduce((t, h) => (h.tarih > t ? h.tarih : t), "") || null;
+  /* Son hareket tarihi: kişinin borç/ödeme hareketleri + ona not düşülmüş
+     gelir/gider kasa kayıtları (bakiyeye işlemese de "hareket var" sayılır). */
+  const sonTarih = k => {
+    let t = k.hareketler.reduce((s, h) => (h.tarih > s ? h.tarih : s), "");
+    for (const h of veri.kasa)
+      if (h.kisiId === k.id && h.tarih > t) t = h.tarih;
+    return t || null;
+  };
 
   function bugunISO() {
     const d = new Date();

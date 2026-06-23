@@ -12,11 +12,8 @@ const UI = (() => {
   const para = n => paraFmt.format(n);
   const tarihKisa = iso => new Date(iso + "T00:00:00")
     .toLocaleDateString("tr-TR", { day: "numeric", month: "short" });
-  const tarihUzun = iso => new Date(iso + "T00:00:00")
-    .toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
 
-  /* Tutar değiştiğinde kısa bir vurgu animasyonu oynatır (mürekkep "tik"i).
-     Metni değil transform'u canlandırır; reduced-motion global kuralla kapanır. */
+  /* Tutar değiştiğinde kısa bir vurgu animasyonu oynatır (mürekkep "tik"i). */
   let oncekiTutarlar = {};
   function tutarYaz(el, deger, metin, sinif) {
     el.textContent = metin;
@@ -29,11 +26,12 @@ const UI = (() => {
     oncekiTutarlar[el.id] = deger;
   }
 
-  /* Tek gelir/gider satırı üretir — ana ekrandaki Kasa filtresi ve
-     Kasa görünümü aynı satırı paylaşır. */
-  function kasaSatir(h, kayitSilIstendi) {
+  /* Tek gelir/gider satırı üretir — ana ekran Kasa filtresi, Kasa görünümü ve
+     kişi detayı aynı satırı paylaşır. duzenleIstendi verilirse düzenle düğmesi
+     eklenir; kisiGoster true ise kişi adı satırda gösterilir. */
+  function kasaSatir(h, { kayitSilIstendi, duzenleIstendi, kisiGoster } = {}) {
     const isr = Store.KASA_ISARET[h.tur];
-    const kisi = h.kisiId ? Store.kisiBul(h.kisiId) : null;
+    const kisi = (kisiGoster && h.kisiId) ? Store.kisiBul(h.kisiId) : null;
     const li = document.createElement("li");
     li.innerHTML = `
       <time class="gun" datetime="${h.tarih}">${tarihKisa(h.tarih)}</time>
@@ -44,6 +42,11 @@ const UI = (() => {
       </span>
       <span class="tutarh ${isr > 0 ? "arti" : "eksi"}">${isr > 0 ? "+" : "−"}${para(h.tutar)}</span>
       <span class="h-eylem">
+        ${duzenleIstendi ? `<button type="button" class="h-duzenle" aria-label="Bu kaydı düzenle: ${Store.KASA_TUR_AD[h.tur]} ${para(h.tutar)}">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M9.8 3.1l3.1 3.1M3 13l.7-3.4 7.4-7.4a1.5 1.5 0 012.1 0l1.6 1.6a1.5 1.5 0 010 2.1L7.4 13.3 3 13z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>` : ""}
         <button type="button" class="h-sil" aria-label="Bu kaydı sil: ${Store.KASA_TUR_AD[h.tur]} ${para(h.tutar)}">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path d="M3 4h10M6.5 4V2.5h3V4M5 4l.6 9h4.8L11 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -54,6 +57,8 @@ const UI = (() => {
     if (kk) kk.textContent = "Kişi: " + kisi.ad;
     const ac = li.querySelector(".aciklama:not(.kasa-kisi)");
     if (ac) ac.textContent = h.aciklama;
+    const dz = li.querySelector(".h-duzenle");
+    if (dz) dz.addEventListener("click", () => duzenleIstendi(h));
     li.querySelector(".h-sil").addEventListener("click", () => kayitSilIstendi(h));
     return li;
   }
@@ -73,17 +78,13 @@ const UI = (() => {
   /* ---------- Ana görünüm ---------- */
   const LISTE_LIMIT = 10; // ilk gösterilen satır sayısı; kalanı "Devamını göster" açar
   function anaCiz({ filtre, arama, satirTiklandi, tumunuGoster, devamiIstendi, kayitSilIstendi }) {
-    let alacakT = 0, borcT = 0;
-    for (const k of Store.kisiler()) {
-      const n = Store.kisiNet(k);
-      if (n > 0) alacakT += n; else if (n < 0) borcT += -n;
-    }
-    /* Büyük rakam kasadır: tüm hareketler + gelir/gider, kasa işaretiyle */
+    /* Büyük rakam kasadır: tüm gelir/gider kayıtlarının kasa işaretli toplamı */
     const kasa = Store.kasaNet();
+    const t = Store.kasaToplamlar();
     const netEl = $("#netTutar");
     tutarYaz(netEl, kasa, para(kasa), "tutar " + (kasa > 0 ? "poz" : kasa < 0 ? "neg" : ""));
-    $("#ozAlacak").textContent = para(alacakT);
-    $("#ozBorc").textContent = para(borcT);
+    $("#ozGelir").textContent = para(t.gelir);
+    $("#ozGider").textContent = para(t.gider);
 
     const liste = $("#kisiListe");
     liste.innerHTML = "";
@@ -108,7 +109,7 @@ const UI = (() => {
         li.style.borderBottom = "none";
         li.textContent = q
           ? "Bu aramayla eşleşen gelir/gider kaydı yok."
-          : "Henüz gelir/gider kaydı yok — Kasa ekranından ekleyebilirsin.";
+          : "Henüz gelir/gider kaydı yok — Gelir ya da Gider ekleyerek başla.";
         liste.appendChild(li);
         return;
       }
@@ -116,7 +117,7 @@ const UI = (() => {
       const gorunurK = gizli > 0 ? kayitlar.slice(0, LISTE_LIMIT) : kayitlar;
       let i = 0;
       for (const h of gorunurK) {
-        const li = kasaSatir(h, kayitSilIstendi);
+        const li = kasaSatir(h, { kayitSilIstendi, kisiGoster: true });
         li.style.setProperty("--i", Math.min(i++, 12));
         liste.appendChild(li);
       }
@@ -126,12 +127,6 @@ const UI = (() => {
 
     const goster = Store.kisiler()
       .filter(k => k.ad.toLocaleLowerCase("tr").includes(q))
-      .filter(k => {
-        const n = Store.kisiNet(k);
-        if (filtre === "alacak") return n > 0;
-        if (filtre === "borc") return n < 0;
-        return true;
-      })
       .sort((a, b) => (Store.sonTarih(b) || "").localeCompare(Store.sonTarih(a) || ""));
 
     $("#bosDurum").hidden = Store.kisiler().length !== 0;
@@ -139,7 +134,7 @@ const UI = (() => {
       const li = document.createElement("li");
       li.className = "bos";
       li.style.borderBottom = "none";
-      li.textContent = "Bu filtreyle eşleşen kişi yok.";
+      li.textContent = "Bu aramayla eşleşen kişi yok.";
       liste.appendChild(li);
     }
 
@@ -148,32 +143,27 @@ const UI = (() => {
 
     let sira = 0;
     for (const k of gorunur) {
-      const n = Store.kisiNet(k);
-      const vd = Store.vadeDurumu(k);
+      const { net } = Store.kisiKasaToplam(k);
       const son = Store.sonTarih(k);
       const li = document.createElement("li");
       li.style.setProperty("--i", Math.min(sira++, 12)); // kademeli giriş animasyonu
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "satir " + (n > 0 ? "poz" : n < 0 ? "neg" : "notr");
+      btn.className = "satir " + (net > 0 ? "poz" : net < 0 ? "neg" : "notr");
       btn.innerHTML = `
         <span class="sol">
           <span class="ad"></span>
           <span class="alt">
-            ${son ? `<time datetime="${son}">Son: ${tarihKisa(son)}</time>` : "Hareket yok"}
-            ${vd && vd.tip === "gecmis" ? `<span class="rozet gecmis">Vadesi geçti</span>` : ""}
-            ${vd && vd.tip === "yakin" ? `<span class="rozet yakin">Vade: ${tarihKisa(vd.vade)}</span>` : ""}
+            ${son ? `<time datetime="${son}">Son: ${tarihKisa(son)}</time>` : "Kayıt yok"}
           </span>
         </span>
         <span class="sag">
-          <span class="miktar">${para(Math.abs(n))}</span><br>
-          <span class="yon">${n > 0 ? "Alacak" : n < 0 ? "Borç" : "Kapandı"}</span>
+          <span class="miktar">${para(Math.abs(net))}</span><br>
+          <span class="yon">${net > 0 ? "Gelir" : net < 0 ? "Gider" : "—"}</span>
         </span>`;
       btn.querySelector(".ad").textContent = k.ad;
       btn.setAttribute("aria-label",
-        `${k.ad}, ${n > 0 ? "sana " + para(n) + " borçlu"
-          : n < 0 ? "ona " + para(-n) + " borçlusun" : "hesap kapalı"}` +
-        (vd && vd.tip === "gecmis" ? ", vadesi geçti" : ""));
+        `${k.ad}, net ${net > 0 ? para(net) + " gelir" : net < 0 ? para(-net) + " gider" : "kayıt yok"}`);
       btn.addEventListener("click", () => satirTiklandi(k.id));
       li.appendChild(btn);
       liste.appendChild(li);
@@ -183,7 +173,7 @@ const UI = (() => {
   }
 
   /* ---------- Kişi detay ---------- */
-  function detayCiz(kisiId, { hareketSilIstendi, hareketDuzenleIstendi, kasaSilIstendi }) {
+  function detayCiz(kisiId, { kasaSilIstendi, kasaDuzenleIstendi }) {
     const k = Store.kisiBul(kisiId);
     if (!k) return false;
 
@@ -194,113 +184,26 @@ const UI = (() => {
     $("#detayParsel").textContent = parseller.length ? "Parsel: " + parseller.join(", ") : "";
     $("#detayParsel").hidden = !parseller.length;
 
-    const n = Store.kisiNet(k);
+    const { gelir, gider, net } = Store.kisiKasaToplam(k);
     const netEl = $("#detayNet");
-    tutarYaz(netEl, kisiId + ":" + n, para(Math.abs(n)), "tutar " + (n > 0 ? "poz" : n < 0 ? "neg" : ""));
+    tutarYaz(netEl, kisiId + ":" + net, para(Math.abs(net)), "tutar " + (net > 0 ? "poz" : net < 0 ? "neg" : ""));
     const ozet = $("#detayOzet");
-    ozet.innerHTML = n > 0 ? `<span class="y"><b></b> sana borçlu</span>`
-      : n < 0 ? `<span class="k">Sen <b></b> kişisine borçlusun</span>`
-      : `<span>Hesap kapalı</span>`;
-    const adB = ozet.querySelector("b");
-    if (adB) adB.textContent = k.ad;
+    ozet.innerHTML = `<span class="y">Gelir <b>${para(gelir)}</b></span><span class="k">Gider <b>${para(gider)}</b></span>`;
 
     const ul = $("#hareketListe");
     ul.innerHTML = "";
-    /* Kişinin borç/ödeme hareketleri + bu kişiye not düşülmüş gelir/gider kasa
-       kayıtları birlikte listelenir. Kasa kayıtları bakiyeye İŞLEMEZ (kisiNet
-       sadece hareketleri sayar) — yalnız geçmişte gösterilir ve kasayı etkiler. */
-    const kasalar = Store.kasaListe()
+    const sirali = Store.kasaListe()
       .filter(h => h.kisiId === kisiId)
-      .map(h => ({ ...h, kasaMi: true }));
-    const hareketler = k.hareketler.map(h => ({ ...h, kasaMi: false }));
-    const sirali = [...hareketler, ...kasalar].sort((a, b) => b.tarih.localeCompare(a.tarih));
+      .sort((a, b) => b.tarih.localeCompare(a.tarih));
     $("#detayBos").hidden = sirali.length > 0;
 
-    const bugun = Store.bugunISO();
     let sira = 0;
     for (const h of sirali) {
-      const isr = h.kasaMi ? Store.KASA_ISARET[h.tur] : Store.ISARET[h.tur];
-      const ad = h.kasaMi ? Store.KASA_TUR_AD[h.tur] : Store.TUR_AD[h.tur];
-      const li = document.createElement("li");
-      li.style.setProperty("--i", Math.min(sira++, 12)); // kademeli giriş animasyonu
-      li.innerHTML = `
-        <time class="gun" datetime="${h.tarih}">${tarihKisa(h.tarih)}</time>
-        <span class="orta">
-          <span class="tur">${ad}${h.kasaMi ? ` <span class="parsel-rozet">Kasa</span>` : ""}${h.parselNo ? ` <span class="parsel-rozet">Parsel ${Number(h.parselNo)}</span>` : ""}</span>
-          ${h.aciklama ? `<span class="aciklama"></span>` : ""}
-          ${h.vade ? `<span class="vade ${h.vade < bugun ? "gecmis" : "normal"}">Vade: ${tarihUzun(h.vade)}${h.vade < bugun ? " · geçti" : ""}</span>` : ""}
-        </span>
-        <span class="tutarh ${isr > 0 ? "arti" : "eksi"}">${isr > 0 ? "+" : "−"}${para(h.tutar)}</span>
-        <span class="h-eylem">
-          ${h.kasaMi ? "" : `<button type="button" class="h-duzenle" aria-label="Bu hareketi düzenle: ${ad} ${para(h.tutar)}">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M9.8 3.1l3.1 3.1M3 13l.7-3.4 7.4-7.4a1.5 1.5 0 012.1 0l1.6 1.6a1.5 1.5 0 010 2.1L7.4 13.3 3 13z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>`}
-          <button type="button" class="h-sil" aria-label="Bu kaydı sil: ${ad} ${para(h.tutar)}">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M3 4h10M6.5 4V2.5h3V4M5 4l.6 9h4.8L11 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-        </span>`;
-      const ac = li.querySelector(".aciklama");
-      if (ac) ac.textContent = h.aciklama;
-      const duzBtn = li.querySelector(".h-duzenle");
-      if (duzBtn) duzBtn.addEventListener("click", () => hareketDuzenleIstendi(h));
-      li.querySelector(".h-sil").addEventListener("click", () =>
-        h.kasaMi ? kasaSilIstendi(h) : hareketSilIstendi(h));
+      const li = kasaSatir(h, { kayitSilIstendi: kasaSilIstendi, duzenleIstendi: kasaDuzenleIstendi });
+      li.style.setProperty("--i", Math.min(sira++, 12));
       ul.appendChild(li);
     }
     return true;
-  }
-
-  /* ---------- Kişi bazlı özet (çubuk grafik + tablo) ---------- */
-  function ozetCiz() {
-    const satirlar = Store.kisiler()
-      .map(k => {
-        const net = Store.kisiNet(k);
-        return { ad: k.ad, net, alacak: net > 0 ? net : 0, borc: net < 0 ? -net : 0 };
-      })
-      .sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
-
-    $("#ozetBos").hidden = satirlar.length > 0;
-    document.querySelector(".ozet-tablo").hidden = !satirlar.length;
-    document.querySelectorAll(".ozet-altbaslik").forEach(b => b.hidden = !satirlar.length);
-
-    const enBuyuk = Math.max(1, ...satirlar.map(s => Math.abs(s.net)));
-    const ul = $("#ozetCubuk");
-    ul.innerHTML = "";
-    for (const s of satirlar) {
-      const sinif = s.net > 0 ? "poz" : s.net < 0 ? "neg" : "notr";
-      const li = document.createElement("li");
-      li.innerHTML = `
-        <span class="c-ad"></span>
-        <span class="c-bar" aria-hidden="true"><span class="c-dolgu ${sinif}"></span></span>
-        <span class="c-tutar ${sinif}"></span>`;
-      li.querySelector(".c-ad").textContent = s.ad;
-      li.querySelector(".c-dolgu").style.setProperty("--olcek", (Math.abs(s.net) / enBuyuk).toFixed(3));
-      li.querySelector(".c-tutar").textContent = para(s.net);
-      ul.appendChild(li);
-    }
-
-    const govde = $("#ozetGovde");
-    govde.innerHTML = "";
-    let topAlacak = 0, topBorc = 0;
-    for (const s of satirlar) {
-      topAlacak += s.alacak; topBorc += s.borc;
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <th scope="row"></th>
-        <td class="y">${s.alacak ? para(s.alacak) : "—"}</td>
-        <td class="k">${s.borc ? para(s.borc) : "—"}</td>
-        <td class="${s.net > 0 ? "y" : s.net < 0 ? "k" : ""}">${para(s.net)}</td>`;
-      tr.querySelector("th").textContent = s.ad;
-      govde.appendChild(tr);
-    }
-    $("#ozetTopAlacak").textContent = para(topAlacak);
-    $("#ozetTopBorc").textContent = para(topBorc);
-    $("#ozetTopNet").textContent = para(topAlacak - topBorc);
-    $("#ozetTopNet").className = topAlacak - topBorc > 0 ? "y" : topAlacak - topBorc < 0 ? "k" : "";
   }
 
   /* ---------- Parseller (1-63 ızgara: aktif = atanmış, pasif = boş) ---------- */
@@ -336,7 +239,7 @@ const UI = (() => {
   }
 
   /* ---------- Kasa (gelir/gider listesi) ---------- */
-  function kasaCiz({ kayitSilIstendi }) {
+  function kasaCiz({ kayitSilIstendi, duzenleIstendi }) {
     const kasa = Store.kasaNet();
     tutarYaz($("#kasaTutar"), kasa, para(kasa),
       "tutar " + (kasa > 0 ? "poz" : kasa < 0 ? "neg" : ""));
@@ -351,11 +254,11 @@ const UI = (() => {
 
     let sira = 0;
     for (const h of sirali) {
-      const li = kasaSatir(h, kayitSilIstendi);
+      const li = kasaSatir(h, { kayitSilIstendi, duzenleIstendi, kisiGoster: true });
       li.style.setProperty("--i", Math.min(sira++, 12));
       ul.appendChild(li);
     }
   }
 
-  return { anaCiz, detayCiz, ozetCiz, parselCiz, kasaCiz, para };
+  return { anaCiz, detayCiz, parselCiz, kasaCiz, para };
 })();

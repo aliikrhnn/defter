@@ -6,7 +6,7 @@
    ===================================================================== */
 "use strict";
 
-const SURUM = "defter-sw-v19";
+const SURUM = "defter-sw-v20";
 const VARLIKLAR = [
   "./",
   "index.html",

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Defter — Kişisel borç &amp; alacak takibi</title>
-<meta name="description" content="Kişisel borç ve alacak takip defteri.">
+<title>Defter — Kişisel gelir &amp; gider takibi</title>
+<meta name="description" content="Kişisel gelir ve gider takip defteri.">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#FBFBF9">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -39,8 +39,8 @@
       <p class="etiket" id="netEtiket">Kasa</p>
       <p class="tutar" id="netTutar" aria-live="polite">₺0,00</p>
       <p class="ozet">
-        <span class="y">Alacak <b id="ozAlacak">₺0,00</b></span>
-        <span class="k">Borç <b id="ozBorc">₺0,00</b></span>
+        <span class="y">Gelir <b id="ozGelir">₺0,00</b></span>
+        <span class="k">Gider <b id="ozGider">₺0,00</b></span>
       </p>
     </section>
 
@@ -54,26 +54,18 @@
         <input id="aramaKutu" type="search" placeholder="Kişi ara" autocomplete="off">
       </div>
       <div class="segment" role="group" aria-label="Listeyi filtrele">
-        <button type="button" data-f="tumu" aria-pressed="true">Tümü</button>
-        <button type="button" data-f="alacak" aria-pressed="false">Alacaklar</button>
-        <button type="button" data-f="borc" aria-pressed="false">Borçlar</button>
-        <button type="button" data-f="kasa" aria-pressed="false">Kasa</button>
+        <button type="button" data-f="tumu" aria-pressed="true">Kişiler</button>
+        <button type="button" data-f="kasa" aria-pressed="false">Tüm kayıtlar</button>
       </div>
     </div>
 
     <ul class="liste" id="kisiListe"></ul>
     <div class="bos" id="bosDurum" hidden>
       <h2>Defter henüz boş</h2>
-      <p>İlk kişiyi ekle, borç ve ödemeleri buradan takip et.</p>
+      <p>İlk kişiyi ekle, gelir ve giderleri buradan takip et.</p>
     </div>
 
     <div class="disa">
-      <button type="button" class="arac" id="ozetBtn">
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M3 13.5V9M8 13.5V2.5M13 13.5V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        Kişi bazlı özet
-      </button>
       <button type="button" class="arac" id="csvBtn">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M8 2v7.5M4.8 6.8L8 10l3.2-3.2M3 13.5h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -92,12 +84,6 @@
           <path d="M2.5 2.5h11v11h-11zM2.5 8h11M8 2.5v11" stroke="currentColor" stroke-width="1.6"/>
         </svg>
         Parseller
-      </button>
-      <button type="button" class="arac" id="topluBtn">
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M3 4.5h7M3 8h7M3 11.5h7M12.5 6.5v5M15 9h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-        </svg>
-        Toplu borç
       </button>
       <button type="button" class="arac" id="topluGiderBtn">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -158,44 +144,13 @@
         <span class="k">Gider <b id="kasaGider">₺0,00</b></span>
       </p>
     </section>
-    <p class="kasa-ipucu">Borç ve ödeme hareketleri de kasaya işler; burada yalnız gelir/gider kayıtları listelenir.</p>
+    <p class="kasa-ipucu">Tüm gelir/gider kayıtları burada listelenir.</p>
 
     <h3 class="gizli">Gelir ve gider kayıtları</h3>
     <ul class="hareketler" id="kasaListe"></ul>
     <div class="bos" id="kasaBos" hidden>
       <h2>Kayıt yok</h2>
       <p>Gelir ya da gider ekleyerek başla; kasaya anında işlenir.</p>
-    </div>
-  </main>
-
-  <!-- ======== ÖZET (kişi bazlı durum) ======== -->
-  <main id="ozetGorunum" hidden>
-    <div class="detay-ust">
-      <button class="geri" id="ozetGeriBtn" aria-label="Listeye dön">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-          <path d="M14 4l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <h2 id="ozetBaslik" tabindex="-1">Kişi bazlı özet</h2>
-    </div>
-
-    <h3 class="ozet-altbaslik">Dağılım</h3>
-    <ul class="cubuklar" id="ozetCubuk"></ul>
-
-    <h3 class="ozet-altbaslik">Döküm</h3>
-    <table class="ozet-tablo">
-      <caption class="gizli">Kişi bazlı borç ve alacak tablosu</caption>
-      <thead>
-        <tr><th scope="col">Kişi</th><th scope="col">Alacak</th><th scope="col">Borç</th><th scope="col">Net</th></tr>
-      </thead>
-      <tbody id="ozetGovde"></tbody>
-      <tfoot>
-        <tr><th scope="row">Toplam</th><td id="ozetTopAlacak"></td><td id="ozetTopBorc"></td><td id="ozetTopNet"></td></tr>
-      </tfoot>
-    </table>
-    <div class="bos" id="ozetBos" hidden>
-      <h2>Henüz veri yok</h2>
-      <p>Kişi ve hareket ekledikçe özet burada oluşur.</p>
     </div>
   </main>
 
@@ -213,16 +168,16 @@
     <p class="kisi-not" id="detayParsel" hidden></p>
 
     <section class="netblok" aria-labelledby="detayNetEtiket">
-      <p class="etiket" id="detayNetEtiket">Bu kişiyle net durum</p>
+      <p class="etiket" id="detayNetEtiket">Bu kişinin net durumu</p>
       <p class="tutar" id="detayNet">₺0,00</p>
       <p class="ozet" id="detayOzet"></p>
     </section>
 
-    <h3 class="gizli">Hareketler</h3>
+    <h3 class="gizli">Gelir ve gider kayıtları</h3>
     <ul class="hareketler" id="hareketListe"></ul>
     <div class="bos" id="detayBos" hidden>
-      <h2>Hareket yok</h2>
-      <p>Borç ya da ödeme ekleyerek başla.</p>
+      <h2>Kayıt yok</h2>
+      <p>Bu kişiye gelir ya da gider ekleyerek başla.</p>
     </div>
 
     <div class="detay-alt">
@@ -235,12 +190,12 @@
 <div class="alt-eylem" id="altEylem" hidden>
   <div class="ic" id="anaEylemler">
     <button class="btn btn-cerceve" id="kisiEkleBtn">＋ Kişi</button>
-    <button class="btn btn-kirmizi" id="anaBorcBtn">Borç ekle</button>
-    <button class="btn btn-yesil" id="anaOdemeBtn">Ödeme ekle</button>
+    <button class="btn btn-kirmizi" id="anaGiderBtn">Gider ekle</button>
+    <button class="btn btn-yesil" id="anaGelirBtn">Gelir ekle</button>
   </div>
   <div class="ic" id="detayEylemler" hidden>
-    <button class="btn btn-kirmizi" id="borcEkleBtn">Borç ekle</button>
-    <button class="btn btn-yesil" id="odemeEkleBtn">Ödeme ekle</button>
+    <button class="btn btn-kirmizi" id="detayGiderBtn">Gider ekle</button>
+    <button class="btn btn-yesil" id="detayGelirBtn">Gelir ekle</button>
   </div>
   <div class="ic" id="kasaEylemler" hidden>
     <button class="btn btn-kirmizi" id="giderEkleBtn">Gider ekle</button>
@@ -289,49 +244,6 @@
     <div class="alan">
       <label for="kisiNotAlan">Not <span class="ipucu">— isteğe bağlı</span></label>
       <input id="kisiNotAlan" name="not" type="text" maxlength="120" autocomplete="off" placeholder="ör. iş arkadaşı">
-    </div>
-    <div class="form-eylem">
-      <button type="button" class="btn btn-cerceve" data-kapat>Vazgeç</button>
-      <button type="submit" class="btn btn-ana" value="kaydet">Kaydet</button>
-    </div>
-  </form>
-</dialog>
-
-<!-- ======== HAREKET FORMU ======== -->
-<dialog id="hareketDialog" aria-labelledby="hFormBaslik">
-  <form class="form" method="dialog" id="hareketForm">
-    <h2 id="hFormBaslik">Borç ekle</h2>
-
-    <div class="alan" id="hKisiAlan" hidden>
-      <label for="hKisi">Kişi</label>
-      <select id="hKisi" name="kisi"></select>
-    </div>
-
-    <div class="alan" id="hParselAlan" hidden>
-      <label for="hParsel">Parsel <span class="ipucu">— isteğe bağlı</span></label>
-      <select id="hParsel" name="parsel"></select>
-    </div>
-
-    <fieldset class="yontur alan">
-      <legend>Yön</legend>
-      <div class="yon-secim" id="yonSecim"></div>
-    </fieldset>
-
-    <div class="alan">
-      <label for="hTutar">Tutar (₺)</label>
-      <input id="hTutar" name="tutar" type="number" inputmode="decimal" min="0.01" step="0.01" required>
-    </div>
-    <div class="alan">
-      <label for="hTarih">Tarih</label>
-      <input id="hTarih" name="tarih" type="date" required>
-    </div>
-    <div class="alan" id="vadeAlan">
-      <label for="hVade">Vade <span class="ipucu">— isteğe bağlı, ödenmesi gereken tarih</span></label>
-      <input id="hVade" name="vade" type="date">
-    </div>
-    <div class="alan">
-      <label for="hAciklama">Açıklama <span class="ipucu">— isteğe bağlı</span></label>
-      <textarea id="hAciklama" name="aciklama" maxlength="200" placeholder="ör. araba tamiri için"></textarea>
     </div>
     <div class="form-eylem">
       <button type="button" class="btn btn-cerceve" data-kapat>Vazgeç</button>
@@ -389,53 +301,6 @@
   </form>
 </dialog>
 
-<!-- ======== TOPLU BORÇ FORMU ======== -->
-<dialog id="topluDialog" aria-labelledby="topluBaslik">
-  <form class="form" id="topluForm" novalidate>
-    <h2 id="topluBaslik">Toplu borç ekle</h2>
-
-    <fieldset class="yontur alan">
-      <legend>Yön</legend>
-      <div class="yon-secim">
-        <label><input type="radio" name="ttur" value="borc-verdim" checked> Borç verdim (−)</label>
-        <label><input type="radio" name="ttur" value="borc-aldim"> Borç aldım (+)</label>
-      </div>
-    </fieldset>
-
-    <div class="alan">
-      <label for="tTutar">Tutar (₺) <span class="ipucu">— seçilen her kişi/parsel için ayrı işlenir</span></label>
-      <input id="tTutar" name="tutar" type="number" inputmode="decimal" min="0.01" step="0.01" required>
-    </div>
-    <div class="alan">
-      <label for="tTarih">Tarih</label>
-      <input id="tTarih" name="tarih" type="date" required>
-    </div>
-    <div class="alan">
-      <label for="tVade">Vade <span class="ipucu">— isteğe bağlı</span></label>
-      <input id="tVade" name="vade" type="date">
-    </div>
-    <div class="alan">
-      <label for="tAciklama">Açıklama <span class="ipucu">— isteğe bağlı</span></label>
-      <textarea id="tAciklama" name="aciklama" maxlength="200" placeholder="ör. yıllık aidat"></textarea>
-    </div>
-
-    <fieldset class="yontur alan">
-      <legend>Kişiler</legend>
-      <div class="secim-liste" id="topluKisiler"></div>
-    </fieldset>
-    <fieldset class="yontur alan">
-      <legend>Parseller <span class="ipucu">— yalnız atanmış (aktif) parseller; borç parsel sahibine işlenir</span></legend>
-      <div class="secim-liste secim-parsel" id="topluParseller"></div>
-    </fieldset>
-    <p class="giris-hata" id="topluHata" role="alert" hidden></p>
-
-    <div class="form-eylem">
-      <button type="button" class="btn btn-cerceve" data-kapat>Vazgeç</button>
-      <button type="submit" class="btn btn-ana" value="kaydet">Kaydet</button>
-    </div>
-  </form>
-</dialog>
-
 <!-- ======== TOPLU GİDER FORMU ======== -->
 <dialog id="topluGiderDialog" aria-labelledby="topluGiderBaslik">
   <form class="form" id="topluGiderForm" novalidate>
@@ -455,7 +320,7 @@
     </div>
 
     <fieldset class="yontur alan">
-      <legend>Kişiler <span class="ipucu">— gider kişinin borcuna işlemez, yalnız kasadan düşer</span></legend>
+      <legend>Kişiler <span class="ipucu">— seçilen her kişiye ayrı gider kaydı işlenir</span></legend>
       <div class="secim-liste" id="topluGiderKisiler"></div>
     </fieldset>
     <fieldset class="yontur alan">
@@ -490,7 +355,7 @@
     </div>
 
     <fieldset class="yontur alan">
-      <legend>Kişiler <span class="ipucu">— gelir kişinin alacağına işlemez, yalnız kasaya girer</span></legend>
+      <legend>Kişiler <span class="ipucu">— seçilen her kişiye ayrı gelir kaydı işlenir</span></legend>
       <div class="secim-liste" id="topluGelirKisiler"></div>
     </fieldset>
     <fieldset class="yontur alan">

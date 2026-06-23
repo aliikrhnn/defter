@@ -2,6 +2,9 @@
    app.js — Başlatma, görünüm geçişleri ve olay bağlama
    Tüm uygulama state'i burada yaşar; render UI'a, veri Store'a delege edilir.
    Oturum yoksa giris.html'e yönlendirir (giriş ayrı sayfadadır).
+
+   NOT: Borç/alacak kaldırıldı. Uygulama yalnız kasa (gelir/gider) ve toplu
+   gelir/gider üzerinden çalışır.
    ===================================================================== */
 "use strict";
 
@@ -18,9 +21,8 @@
     filtre: "tumu",
     arama: "",
     acikKisiId: null,
-    hareketMod: "borc",        // "borc" | "odeme"
-    duzenlenenHareketId: null, // doluysa hareket formu düzenleme modundadır
     kasaTur: "gelir",          // kasa formu: "gelir" | "gider"
+    duzenlenenKasaId: null,    // doluysa kasa formu düzenleme modundadır
     acikParselNo: null,        // parsel atama dialogunun hedefi
     tumunuGoster: false        // ana liste: ilk 10'dan fazlası açık mı
   };
@@ -91,7 +93,6 @@
       }
       if (Store.disYukle(kayit.veri)) {
         if (durum.acikKisiId) cizDetay();
-        else if (!$("#ozetGorunum").hidden) UI.ozetCiz();
         else if (!$("#parselGorunum").hidden) cizParsel();
         else if (!$("#kasaGorunum").hidden) cizKasa();
         else cizAna();
@@ -111,7 +112,7 @@
   }
 
   /* ---------- Görünüm geçişleri ---------- */
-  const GORUNUMLER = ["#anaGorunum", "#detayGorunum", "#ozetGorunum", "#parselGorunum", "#kasaGorunum"];
+  const GORUNUMLER = ["#anaGorunum", "#detayGorunum", "#parselGorunum", "#kasaGorunum"];
   const EYLEM_GRUPLARI = ["#anaEylemler", "#detayEylemler", "#kasaEylemler"];
   /* eylemGrubu null ise alt çubuk tamamen gizlenir (salt okunur görünümler) */
   function gorunumAc(secici, eylemGrubu) {
@@ -134,12 +135,6 @@
     listeCanlandir($("#hareketListe"));
     cizDetay();
     $("#detayAd").focus();
-  }
-  function ozetGoster() {
-    durum.acikKisiId = null;
-    gorunumAc("#ozetGorunum", null); // özet salt okunurdur
-    UI.ozetCiz();
-    $("#ozetBaslik").focus();
   }
   function parselGoster() {
     durum.acikKisiId = null;
@@ -179,27 +174,17 @@
   }
   function cizDetay() {
     const ok = UI.detayCiz(durum.acikKisiId, {
-      hareketSilIstendi(h) {
+      kasaSilIstendi(h) {
         const kisiId = durum.acikKisiId;
-        Store.hareketSil(kisiId, h.id);
+        Store.kasaSil(h.id);
         cizDetay();
-        bildir("Hareket silindi.", () => {
-          Store.hareketGeriAl(kisiId, h);
+        bildir("Kayıt silindi.", () => {
+          Store.kasaGeriAl(h);
           if (durum.acikKisiId === kisiId) cizDetay(); else cizAna();
         });
       },
-      hareketDuzenleIstendi(h) {
-        const mod = (h.tur === "borc-verdim" || h.tur === "borc-aldim") ? "borc" : "odeme";
-        hareketFormuAc(mod, h);
-      },
-      kasaSilIstendi(h) { // kişi detayındaki gelir/gider (kasa) satırının silinmesi
-        Store.kasaSil(h.id);
-        cizDetay();
-        cizAna(); // kasa toplamı değişti
-        bildir("Kayıt silindi.", () => {
-          Store.kasaGeriAl(h);
-          if (durum.acikKisiId) cizDetay(); else cizAna();
-        });
+      kasaDuzenleIstendi(h) {
+        kasaFormuAc(h.tur, h.kisiId || "", h);
       }
     });
     if (!ok) anaGoster();
@@ -216,6 +201,9 @@
           Store.kasaGeriAl(h);
           if (!$("#kasaGorunum").hidden) cizKasa();
         });
+      },
+      duzenleIstendi(h) {
+        kasaFormuAc(h.tur, h.kisiId || "", h);
       }
     });
   }
@@ -243,154 +231,6 @@
     kisiDialog.close();
     cizAna();
     bildir(`"${ad}" deftere eklendi.`);
-  });
-
-  /* ---------- Hareket formu ---------- */
-  const hareketDialog = $("#hareketDialog");
-  /* Etiketlerdeki işaret kasa yönüdür: + kasaya girer, − kasadan çıkar */
-  const YONLER = {
-    borc:  [["borc-verdim", "Borç verdim (−)"], ["borc-aldim", "Borç aldım (+)"]],
-    odeme: [["odeme-aldim", "Ödeme aldım (+)"], ["odeme-yaptim", "Ödeme yaptım (−)"]]
-  };
-  /* hareket doluysa düzenleme modu; kisiSecimi true ise (ana ekrandan açılış)
-     formda kişi seçici gösterilir ve hareket seçilen kişiye atanır. */
-  function hareketFormuAc(mod, hareket, kisiSecimi) {
-    durum.hareketMod = mod;
-    durum.duzenlenenHareketId = hareket ? hareket.id : null;
-    $("#hFormBaslik").textContent = hareket
-      ? "Hareketi düzenle"
-      : (mod === "borc" ? "Borç ekle" : "Ödeme ekle");
-
-    /* Ana ekrandan borç/ödeme: kişi isteğe bağlı (boş = kasaya işlenir) + parsel notu */
-    const kasaSecenekli = Boolean(kisiSecimi);
-    const kisiAlan = $("#hKisiAlan");
-    const kisiSec = $("#hKisi");
-    kisiAlan.hidden = !kisiSecimi;
-    kisiSec.required = Boolean(kisiSecimi) && !kasaSecenekli;
-    kisiSec.innerHTML = "";
-    if (kisiSecimi) {
-      if (kasaSecenekli) {
-        const bos = document.createElement("option");
-        bos.value = "";
-        bos.textContent = "— Kişi yok (kasaya işlenir)";
-        kisiSec.appendChild(bos);
-      }
-      [...Store.kisiler()]
-        .sort((a, b) => a.ad.localeCompare(b.ad, "tr"))
-        .forEach(k => {
-          const sec = document.createElement("option");
-          sec.value = k.id;
-          sec.textContent = k.ad;
-          kisiSec.appendChild(sec);
-        });
-    }
-
-    const parselAlan = $("#hParselAlan");
-    const parselSec = $("#hParsel");
-    parselAlan.hidden = !kasaSecenekli;
-    parselSec.innerHTML = "";
-    if (kasaSecenekli) {
-      const bosP = document.createElement("option");
-      bosP.value = "";
-      bosP.textContent = "—";
-      parselSec.appendChild(bosP);
-      for (const p of Store.parseller()) {
-        const sahip = p.kisiId ? Store.kisiBul(p.kisiId) : null;
-        const o = document.createElement("option");
-        o.value = p.no;
-        o.textContent = "Parsel " + p.no + (sahip ? " · " + sahip.ad : "");
-        parselSec.appendChild(o);
-      }
-    }
-
-    const kutu = $("#yonSecim");
-    kutu.innerHTML = "";
-    YONLER[mod].forEach(([deger, etiket], i) => {
-      const l = document.createElement("label");
-      const input = document.createElement("input");
-      input.type = "radio"; input.name = "tur"; input.value = deger;
-      if (i === 0) input.checked = true;
-      l.appendChild(input);
-      l.appendChild(document.createTextNode(" " + etiket));
-      kutu.appendChild(l);
-    });
-    $("#vadeAlan").hidden = (mod === "odeme");
-    $("#hareketForm").reset();
-    kutu.querySelector("input").checked = true; // reset sonrası ilk seçenek
-    $("#hTarih").value = Store.bugunISO();
-    if (hareket) {
-      const secili = kutu.querySelector(`input[value="${hareket.tur}"]`);
-      if (secili) secili.checked = true;
-      $("#hTutar").value = hareket.tutar;
-      $("#hTarih").value = hareket.tarih;
-      $("#hVade").value = hareket.vade || "";
-      $("#hAciklama").value = hareket.aciklama || "";
-    }
-    hareketDialog.showModal();
-  }
-  $("#borcEkleBtn").addEventListener("click", () => hareketFormuAc("borc"));
-  $("#odemeEkleBtn").addEventListener("click", () => hareketFormuAc("odeme"));
-
-  /* Ana ekrandan borç/ödeme: kişi seçimi zorunlu; hiç kişi yoksa önce kişi ekletilir. */
-  function anaHareket(mod) {
-    if (Store.kisiler().length === 0) {
-      bildir("Önce bir kişi ekle — borç ve ödemeler kişiye işlenir.");
-      $("#kisiForm").reset();
-      kisiDialog.showModal();
-      return;
-    }
-    hareketFormuAc(mod, null, true);
-  }
-  $("#anaBorcBtn").addEventListener("click", () => anaHareket("borc"));
-  $("#anaOdemeBtn").addEventListener("click", () => anaHareket("odeme"));
-
-  $("#hareketForm").addEventListener("submit", e => {
-    e.preventDefault();
-    /* Hedef kişi: detaydaysak açık kişi, ana ekrandan açıldıysa seçilen kişi */
-    const hedefKisiId = durum.acikKisiId || $("#hKisi").value;
-
-    /* Ana ekrandan borç/ödeme + kişi seçilmedi → kasaya işle (gelir/gider notu).
-       İşaret kasa bakışı: ISARET<0 kasadan çıkar (gider), >0 kasaya girer (gelir) */
-    if (!hedefKisiId && !durum.duzenlenenHareketId) {
-      const tur = new FormData(e.target).get("tur");
-      const kasaTur = Store.ISARET[tur] < 0 ? "gider" : "gelir";
-      const kayit = Store.kasaEkle({
-        tur: kasaTur,
-        tutar: parseFloat($("#hTutar").value),
-        tarih: $("#hTarih").value,
-        aciklama: $("#hAciklama").value,
-        kisiId: null,
-        parselNo: $("#hParsel").value || null
-      });
-      if (!kayit) return;
-      hareketDialog.close();
-      cizAna();
-      bildir(kasaTur === "gider"
-        ? "Kasadan çıkış işlendi."
-        : "Kasaya giriş işlendi.");
-      return;
-    }
-
-    const hedefKisi = Store.kisiBul(hedefKisiId);
-    if (!hedefKisi) return;
-    const alanlar = {
-      tur: new FormData(e.target).get("tur"),
-      tutar: parseFloat($("#hTutar").value),
-      tarih: $("#hTarih").value,
-      vade: (durum.hareketMod === "borc" && $("#hVade").value) ? $("#hVade").value : null,
-      aciklama: $("#hAciklama").value
-    };
-    const guncellemeydi = Boolean(durum.duzenlenenHareketId);
-    const sonuc = guncellemeydi
-      ? Store.hareketGuncelle(hedefKisiId, durum.duzenlenenHareketId, alanlar)
-      : Store.hareketEkle(hedefKisiId, alanlar);
-    if (!sonuc) return;
-    hareketDialog.close();
-    durum.duzenlenenHareketId = null;
-    if (durum.acikKisiId) cizDetay(); else cizAna();
-    bildir(guncellemeydi
-      ? "Hareket güncellendi."
-      : `"${hedefKisi.ad}" defterine işlendi.`);
   });
 
   document.querySelectorAll("[data-kapat]").forEach(b => {
@@ -442,13 +282,19 @@
     bildir(k ? `Parsel ${no} → "${k.ad}" (aktif).` : `Parsel ${no} boşaltıldı (pasif).`);
   });
 
-  /* ---------- Kasa: gelir/gider formu ---------- */
+  /* ---------- Kasa: gelir/gider formu (ekle + düzenle) ----------
+     sabitKisiId: ön seçili kişi (kişi detayından açılışta). hareket doluysa
+     düzenleme modu. */
   const kasaDialog = $("#kasaDialog");
-  function kasaFormuAc(tur) {
+  function kasaFormuAc(tur, sabitKisiId, hareket) {
     durum.kasaTur = tur;
-    $("#kasaFormBaslik").textContent = tur === "gelir" ? "Gelir ekle" : "Gider ekle";
+    durum.duzenlenenKasaId = hareket ? hareket.id : null;
+    $("#kasaFormBaslik").textContent = hareket
+      ? (tur === "gelir" ? "Geliri düzenle" : "Gideri düzenle")
+      : (tur === "gelir" ? "Gelir ekle" : "Gider ekle");
     $("#kasaForm").reset();
     $("#kTarih").value = Store.bugunISO();
+
     const kisiSec = $("#kKisi");
     kisiSec.innerHTML = "";
     const bosK = document.createElement("option");
@@ -463,6 +309,7 @@
         o.textContent = k.ad;
         kisiSec.appendChild(o);
       });
+
     const parselSec = $("#kParsel");
     parselSec.innerHTML = "";
     const bosP = document.createElement("option");
@@ -476,103 +323,52 @@
       o.textContent = "Parsel " + p.no + (sahip ? " · " + sahip.ad : "");
       parselSec.appendChild(o);
     }
+
+    if (hareket) {
+      $("#kTutar").value = hareket.tutar;
+      $("#kTarih").value = hareket.tarih;
+      $("#kAciklama").value = hareket.aciklama || "";
+      kisiSec.value = hareket.kisiId || "";
+      parselSec.value = hareket.parselNo || "";
+    } else if (sabitKisiId) {
+      kisiSec.value = sabitKisiId;
+    }
     kasaDialog.showModal();
   }
-  $("#gelirEkleBtn").addEventListener("click", () => kasaFormuAc("gelir"));
-  $("#giderEkleBtn").addEventListener("click", () => kasaFormuAc("gider"));
+  /* Ana ekran ve kasa görünümü: serbest gelir/gider. Kişi detayı: o kişiye ön seçili. */
+  $("#anaGelirBtn").addEventListener("click", () => kasaFormuAc("gelir", ""));
+  $("#anaGiderBtn").addEventListener("click", () => kasaFormuAc("gider", ""));
+  $("#gelirEkleBtn").addEventListener("click", () => kasaFormuAc("gelir", ""));
+  $("#giderEkleBtn").addEventListener("click", () => kasaFormuAc("gider", ""));
+  $("#detayGelirBtn").addEventListener("click", () => kasaFormuAc("gelir", durum.acikKisiId));
+  $("#detayGiderBtn").addEventListener("click", () => kasaFormuAc("gider", durum.acikKisiId));
+
   $("#kasaForm").addEventListener("submit", e => {
     e.preventDefault();
-    const kayit = Store.kasaEkle({
+    const alanlar = {
       tur: durum.kasaTur,
       tutar: parseFloat($("#kTutar").value),
       tarih: $("#kTarih").value,
       aciklama: $("#kAciklama").value,
       kisiId: $("#kKisi").value || null,
       parselNo: $("#kParsel").value || null
-    });
+    };
+    const guncellemeydi = Boolean(durum.duzenlenenKasaId);
+    const kayit = guncellemeydi
+      ? Store.kasaGuncelle(durum.duzenlenenKasaId, alanlar)
+      : Store.kasaEkle(alanlar);
     if (!kayit) return;
     kasaDialog.close();
-    cizKasa();
+    durum.duzenlenenKasaId = null;
+    if (durum.acikKisiId) cizDetay();
+    else if (!$("#kasaGorunum").hidden) cizKasa();
     cizAna(); // ana ekrandaki kasa toplamı da değişti
-    bildir(durum.kasaTur === "gelir" ? "Gelir kasaya işlendi." : "Gider kasadan düşüldü.");
+    bildir(guncellemeydi
+      ? "Kayıt güncellendi."
+      : (durum.kasaTur === "gelir" ? "Gelir kasaya işlendi." : "Gider kasadan düşüldü."));
   });
 
-  /* ---------- Toplu borç (kişi ve parsel seçimiyle) ---------- */
-  const topluDialog = $("#topluDialog");
-  function topluFormuAc() {
-    if (Store.kisiler().length === 0) {
-      bildir("Önce bir kişi ekle — toplu borç kişilere işlenir.");
-      $("#kisiForm").reset();
-      kisiDialog.showModal();
-      return;
-    }
-    $("#topluForm").reset();
-    $("#topluHata").hidden = true;
-    $("#tTarih").value = Store.bugunISO();
-
-    const kKutu = $("#topluKisiler");
-    kKutu.innerHTML = "";
-    [...Store.kisiler()]
-      .sort((a, b) => a.ad.localeCompare(b.ad, "tr"))
-      .forEach(k => {
-        const l = document.createElement("label");
-        const c = document.createElement("input");
-        c.type = "checkbox"; c.name = "tkisi"; c.value = k.id;
-        l.appendChild(c);
-        l.appendChild(document.createTextNode(" " + k.ad));
-        kKutu.appendChild(l);
-      });
-
-    const pKutu = $("#topluParseller");
-    pKutu.innerHTML = "";
-    const atanmis = Store.parseller().filter(p => p.kisiId && Store.kisiBul(p.kisiId));
-    if (atanmis.length === 0) {
-      const bos = document.createElement("p");
-      bos.className = "secim-bos";
-      bos.textContent = "Atanmış parsel yok — önce Parseller ekranından atama yap.";
-      pKutu.appendChild(bos);
-    }
-    for (const p of atanmis) {
-      const sahip = Store.kisiBul(p.kisiId);
-      const l = document.createElement("label");
-      const c = document.createElement("input");
-      c.type = "checkbox"; c.name = "tparsel"; c.value = p.no;
-      l.appendChild(c);
-      l.appendChild(document.createTextNode(` ${p.no} · ${sahip.ad}`));
-      pKutu.appendChild(l);
-    }
-    topluDialog.showModal();
-  }
-  $("#topluBtn").addEventListener("click", topluFormuAc);
-  $("#topluForm").addEventListener("submit", e => {
-    e.preventDefault();
-    const hata = $("#topluHata");
-    hata.hidden = true;
-    const kisiIds = [...document.querySelectorAll("#topluKisiler input:checked")].map(c => c.value);
-    const parselNos = [...document.querySelectorAll("#topluParseller input:checked")].map(c => Number(c.value));
-    if (kisiIds.length === 0 && parselNos.length === 0) {
-      hata.textContent = "En az bir kişi veya parsel seç.";
-      hata.hidden = false;
-      return;
-    }
-    const eklenen = Store.topluBorcEkle({
-      kisiIds, parselNos,
-      tur: new FormData(e.target).get("ttur"),
-      tutar: parseFloat($("#tTutar").value),
-      tarih: $("#tTarih").value,
-      vade: $("#tVade").value || null,
-      aciklama: $("#tAciklama").value
-    });
-    if (eklenen.length === 0) return;
-    topluDialog.close();
-    cizAna();
-    bildir(`${eklenen.length} kayıt deftere işlendi.`, () => {
-      for (const { kisiId, hareket } of eklenen) Store.hareketSil(kisiId, hareket.id);
-      if (durum.acikKisiId) cizDetay(); else cizAna();
-    });
-  });
-
-  /* ---------- Toplu gider (kişi ve parsel seçimiyle, kasaya işler) ---------- */
+  /* ---------- Toplu gider (kişi ve parsel seçimiyle) ---------- */
   const topluGiderDialog = $("#topluGiderDialog");
   function topluGiderFormuAc() {
     $("#topluGiderForm").reset();
@@ -598,7 +394,6 @@
         kKutu.appendChild(l);
       });
 
-    /* Gider parselin sahibine işlemez (yalnız not) — tüm parseller seçilebilir */
     const pKutu = $("#topluGiderParseller");
     pKutu.innerHTML = "";
     for (const p of Store.parseller()) {
@@ -639,7 +434,7 @@
     });
   });
 
-  /* ---------- Toplu gelir (kişi ve parsel seçimiyle, kasaya işler) ---------- */
+  /* ---------- Toplu gelir (kişi ve parsel seçimiyle) ---------- */
   const topluGelirDialog = $("#topluGelirDialog");
   function topluGelirFormuAc() {
     $("#topluGelirForm").reset();
@@ -665,7 +460,6 @@
         kKutu.appendChild(l);
       });
 
-    /* Gelir parselin sahibine işlemez (yalnız not) — tüm parseller seçilebilir */
     const pKutu = $("#topluGelirParseller");
     pKutu.innerHTML = "";
     for (const p of Store.parseller()) {
@@ -744,8 +538,6 @@
 
   /* ---------- Diğer etkileşimler ---------- */
   $("#geriBtn").addEventListener("click", anaGoster);
-  $("#ozetBtn").addEventListener("click", ozetGoster);
-  $("#ozetGeriBtn").addEventListener("click", anaGoster);
   $("#parselBtn").addEventListener("click", parselGoster);
   $("#parselGeriBtn").addEventListener("click", anaGoster);
   $("#kasaBtn").addEventListener("click", kasaGoster);
@@ -766,7 +558,7 @@
   $("#csvBtn").addEventListener("click", () => {
     const csv = Store.csvUret();
     // BOM, Excel'in UTF-8'i doğru tanıması için gerekli
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "defter-" + Store.bugunISO() + ".csv";

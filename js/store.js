@@ -232,18 +232,57 @@ const Store = (() => {
     kaydet(veri);
   }
 
-  /* Defterin tüm gelir/gider kayıtlarını CSV olarak üretir (";" ayraçlı — TR
-     Excel uyumu). Hücreler daima tırnaklanır; içerideki tırnaklar ikilenir. */
+  /* Defteri okunur bir CSV olarak üretir (";" ayraçlı — TR Excel uyumu).
+     Gelirler ve giderler ayrı bölümlerde; en üstte özet, altta ara toplamlar.
+     Her kayıtta, kişi seçilmişse o kişiye ATANMIŞ parseller de yazılır.
+     Hücreler daima tırnaklanır; içerideki tırnaklar ikilenir. */
   function csvUret() {
-    const satirlar = [["Kişi", "Tür", "İşaret", "Tutar", "Tarih", "Parsel", "Açıklama"]];
-    for (const h of veri.kasa) {
-      const kisi = h.kisiId ? kisiBul(h.kisiId) : null;
-      satirlar.push([
-        kisi ? kisi.ad : "", KASA_TUR_AD[h.tur], KASA_ISARET[h.tur] > 0 ? "+" : "−",
-        h.tutar.toFixed(2).replace(".", ","),
-        h.tarih, h.parselNo || "", h.aciklama || ""
-      ]);
-    }
+    const tl = n => n.toFixed(2).replace(".", ",") + " TL";
+    const trTarih = iso => {
+      const p = String(iso || "").split("-");
+      return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : (iso || "");
+    };
+    const kisiParselMetni = kisiId => {
+      const nos = kisiId ? kisiParselleri(kisiId) : [];
+      return nos.length ? nos.join(", ") : "";
+    };
+
+    const { gelir, gider } = kasaToplamlar();
+    const bakiye = gelir - gider;
+
+    const satirlar = [];
+    satirlar.push(["DEFTER ÖZETİ", trTarih(bugunISO())]);
+    satirlar.push([]);
+    satirlar.push(["Toplam Gelir", tl(gelir)]);
+    satirlar.push(["Toplam Gider", tl(gider)]);
+    satirlar.push(["Kasa Bakiyesi", tl(bakiye)]);
+    satirlar.push([]);
+
+    const bolum = (baslik, tur, aratoplam) => {
+      const kayitlar = veri.kasa
+        .filter(h => h.tur === tur)
+        .slice()
+        .sort((a, b) => (a.tarih < b.tarih ? -1 : a.tarih > b.tarih ? 1 : 0));
+      satirlar.push([baslik + " (" + kayitlar.length + " kayıt)"]);
+      satirlar.push(["Tarih", "Kişi", "Kişinin Parselleri", "Kayıt Parseli", "Tutar", "Açıklama"]);
+      for (const h of kayitlar) {
+        const kisi = h.kisiId ? kisiBul(h.kisiId) : null;
+        satirlar.push([
+          trTarih(h.tarih),
+          kisi ? kisi.ad : "",
+          kisiParselMetni(h.kisiId),
+          h.parselNo || "",
+          tl(h.tutar),
+          h.aciklama || ""
+        ]);
+      }
+      satirlar.push(["", "", "", "Ara Toplam", tl(aratoplam), ""]);
+      satirlar.push([]);
+    };
+
+    bolum("GELİRLER", "gelir", gelir);
+    bolum("GİDERLER", "gider", gider);
+
     return satirlar
       .map(s => s.map(h => `"${String(h).replace(/"/g, '""')}"`).join(";"))
       .join("\r\n");

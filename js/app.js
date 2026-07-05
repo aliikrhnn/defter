@@ -556,15 +556,15 @@
     });
   });
   $("#csvBtn").addEventListener("click", () => {
-    const csv = Store.csvUret();
+    const html = Store.excelUret();
     // BOM, Excel'in UTF-8'i doğru tanıması için gerekli
-    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob(["﻿" + html], { type: "application/vnd.ms-excel;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "defter-" + Store.bugunISO() + ".csv";
+    a.download = "defter-" + Store.bugunISO() + ".xls";
     a.click();
     URL.revokeObjectURL(a.href);
-    bildir("CSV indirildi.");
+    bildir("Excel indirildi.");
   });
   $("#aramaKutu").addEventListener("input", e => {
     durum.arama = e.target.value;

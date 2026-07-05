@@ -556,15 +556,29 @@
     });
   });
   $("#csvBtn").addEventListener("click", () => {
-    const html = Store.excelUret();
-    // BOM, Excel'in UTF-8'i doğru tanıması için gerekli
-    const blob = new Blob(["﻿" + html], { type: "application/vnd.ms-excel;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "defter-" + Store.bugunISO() + ".xls";
-    a.click();
-    URL.revokeObjectURL(a.href);
-    bildir("Excel indirildi.");
+    // Gizli iframe'e yaz, yazdırma diyaloğunu aç — "PDF olarak kaydet" PDF verir
+    const html = Store.pdfUret();
+    const eski = document.getElementById("pdfCerceve");
+    if (eski) eski.remove();
+    const f = document.createElement("iframe");
+    f.id = "pdfCerceve";
+    f.style.position = "fixed";
+    f.style.right = "0";
+    f.style.bottom = "0";
+    f.style.width = "0";
+    f.style.height = "0";
+    f.style.border = "0";
+    f.setAttribute("aria-hidden", "true");
+    document.body.appendChild(f);
+    f.contentDocument.open();
+    f.contentDocument.write(html);
+    f.contentDocument.close();
+    // içerik yerleşsin diye bir kare bekle, sonra yazdır
+    requestAnimationFrame(() => {
+      f.contentWindow.focus();
+      f.contentWindow.print();
+    });
+    bildir("Yazdırma penceresinde “PDF olarak kaydet” seçin.");
   });
   $("#aramaKutu").addEventListener("input", e => {
     durum.arama = e.target.value;

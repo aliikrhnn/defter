@@ -288,11 +288,11 @@ const Store = (() => {
       .join("\r\n");
   }
 
-  /* Renkli, kalın başlıklı, büyük fontlu Excel dosyası üretir. Bağımlılık
-     eklemeden gerçek biçim için Excel'in açtığı stilli HTML tablosu (.xls)
-     kullanılır. Yeşil = gelir, kırmızı = gider (defter mürekkep renkleri).
+  /* Yazdırmaya (PDF) uygun tam sayfa HTML üretir. Tarayıcının yazdırma
+     diyaloğu "PDF olarak kaydet" ile PDF verir — bağımlılık yok.
+     Yeşil = gelir, kırmızı = gider (defter mürekkep renkleri).
      Yaşlı-dostu: 15px taban font, kalın başlıklar, net çerçeveler. */
-  function excelUret() {
+  function pdfUret() {
     const KAGIT = "#FBFBF9", MUREKKEP = "#1A1C1E", SOLUK = "#5C6064";
     const CIZGI = "#C9C6BE", ALACAK = "#1E6E4E", BORC = "#B3372B";
     const ACIK_YESIL = "#EAF3EE", ACIK_KIRMIZI = "#F7EAE8";
@@ -379,11 +379,15 @@ const Store = (() => {
     bolum("GELİRLER", "gelir", gelir, ALACAK, ACIK_YESIL);
     bolum("GİDERLER", "gider", gider, BORC, ACIK_KIRMIZI);
 
-    return `<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8">` +
-      `<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>` +
-      `<x:Name>Defter</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>` +
-      `</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->` +
-      `</head><body><table style="border-collapse:collapse;font-family:Calibri,Arial,sans-serif;background:${KAGIT};">` +
+    return `<!DOCTYPE html><html lang="tr"><head><meta charset="utf-8">` +
+      `<title>Defter — ${kacis(trTarih(bugunISO()))}</title>` +
+      `<style>` +
+      `@page { size: A4; margin: 14mm; }` +
+      `body { margin: 0; background: #FFFFFF; }` +
+      `table { width: 100%; }` +
+      `tr { page-break-inside: avoid; }` +
+      `</style></head>` +
+      `<body><table style="border-collapse:collapse;font-family:Arial,sans-serif;">` +
       s + `</table></body></html>`;
   }
 
@@ -394,7 +398,7 @@ const Store = (() => {
     parseller, parselSahibi, kisiParselleri, parselAta,
     kisiEkle, kisiSil,
     topluGiderEkle, topluGelirEkle, kasaEkle, kasaGuncelle, kasaSil, kasaSonucSil,
-    kisiGeriAl, kasaGeriAl, csvUret, excelUret,
+    kisiGeriAl, kasaGeriAl, csvUret, pdfUret,
     degisimDinle, disYukle, ham
   };
 })();

@@ -288,17 +288,10 @@ const Store = (() => {
       .join("\r\n");
   }
 
-  /* Yazdırmaya (PDF) uygun tam sayfa HTML üretir. Tarayıcının yazdırma
-     diyaloğu "PDF olarak kaydet" ile PDF verir — bağımlılık yok.
-     Yeşil = gelir, kırmızı = gider (defter mürekkep renkleri).
-     Yaşlı-dostu: 15px taban font, kalın başlıklar, net çerçeveler. */
-  function pdfUret() {
-    const KAGIT = "#FBFBF9", MUREKKEP = "#1A1C1E", SOLUK = "#5C6064";
-    const CIZGI = "#C9C6BE", ALACAK = "#1E6E4E", BORC = "#B3372B";
-    const ACIK_YESIL = "#EAF3EE", ACIK_KIRMIZI = "#F7EAE8";
-
-    const kacis = s => String(s == null ? "" : s)
-      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  /* PDF çiziminin (app.js → jsPDF) ihtiyaç duyduğu yapısal veriyi üretir.
+     Biçimleme (TR tutar/tarih) burada yapılır; çizim state tutmaz.
+     Yeşil = gelir, kırmızı = gider (defter mürekkep renkleri). */
+  function pdfVeri() {
     const tutarMetni = n => {
       // binlik ayraç "." ondalık "," — TR biçim
       const [tam, ond] = n.toFixed(2).split(".");
@@ -313,82 +306,40 @@ const Store = (() => {
       const nos = kisiId ? kisiParselleri(kisiId) : [];
       return nos.length ? nos.join(", ") : "";
     };
+    const S = tutarMetni;
 
     const { gelir, gider } = kasaToplamlar();
     const bakiye = gelir - gider;
-    const S = tutarMetni;
 
-    // ortak hücre stilleri
-    const cerceve = `border:1px solid ${CIZGI};`;
-    const td = (metin, ekstra = "") =>
-      `<td style="${cerceve}padding:8px 12px;font-size:15px;color:${MUREKKEP};${ekstra}">${kacis(metin)}</td>`;
-    const bosSatir = `<tr><td colspan="6" style="height:14px;border:none;"></td></tr>`;
-
-    let s = "";
-    s += `<tr><td colspan="6" style="border:none;padding:6px 4px 14px;font-size:24px;font-weight:bold;color:${MUREKKEP};">DEFTER — ${kacis(trTarih(bugunISO()))}</td></tr>`;
-
-    // özet kutusu
-    const ozetSatir = (etiket, deger, renk) =>
-      `<tr>` +
-      `<td colspan="2" style="${cerceve}padding:10px 14px;font-size:17px;font-weight:bold;color:${MUREKKEP};background:${KAGIT};">${kacis(etiket)}</td>` +
-      `<td colspan="4" style="${cerceve}padding:10px 14px;font-size:17px;font-weight:bold;color:${renk};text-align:right;background:${KAGIT};">${kacis(deger)}</td>` +
-      `</tr>`;
-    s += ozetSatir("Toplam Gelir", S(gelir), ALACAK);
-    s += ozetSatir("Toplam Gider", S(gider), BORC);
-    s += ozetSatir("Kasa Bakiyesi", S(bakiye), bakiye >= 0 ? ALACAK : BORC);
-    s += bosSatir;
-
-    const bolum = (baslik, tur, aratoplam, vurgu, acikArka) => {
-      const kayitlar = veri.kasa
-        .filter(h => h.tur === tur)
-        .slice()
-        .sort((a, b) => (a.tarih < b.tarih ? -1 : a.tarih > b.tarih ? 1 : 0));
-
-      // bölüm başlığı (renkli şerit)
-      s += `<tr><td colspan="6" style="border:1px solid ${vurgu};padding:10px 14px;font-size:18px;font-weight:bold;color:#FFFFFF;background:${vurgu};">` +
-        `${kacis(baslik)} — ${kayitlar.length} kayıt</td></tr>`;
-
-      // sütun başlıkları
-      const baslikHucre = m =>
-        `<td style="${cerceve}padding:9px 12px;font-size:14px;font-weight:bold;color:${MUREKKEP};background:${acikArka};">${kacis(m)}</td>`;
-      const sagBaslik = m =>
-        `<td style="${cerceve}padding:9px 12px;font-size:14px;font-weight:bold;color:${MUREKKEP};background:${acikArka};text-align:right;">${kacis(m)}</td>`;
-      s += `<tr>${baslikHucre("Tarih")}${baslikHucre("Kişi")}${baslikHucre("Kişinin Parselleri")}${baslikHucre("Kayıt Parseli")}${sagBaslik("Tutar")}${baslikHucre("Açıklama")}</tr>`;
-
-      for (const h of kayitlar) {
+    const bolumVeri = tur => veri.kasa
+      .filter(h => h.tur === tur)
+      .slice()
+      .sort((a, b) => (a.tarih < b.tarih ? -1 : a.tarih > b.tarih ? 1 : 0))
+      .map(h => {
         const kisi = h.kisiId ? kisiBul(h.kisiId) : null;
-        s += `<tr>` +
-          td(trTarih(h.tarih)) +
-          td(kisi ? kisi.ad : "") +
-          td(kisiParselMetni(h.kisiId), `text-align:center;color:${SOLUK};`) +
-          td(h.parselNo || "", `text-align:center;color:${SOLUK};`) +
-          td(S(h.tutar), `text-align:right;font-weight:bold;color:${vurgu};`) +
-          td(h.aciklama || "") +
-          `</tr>`;
-      }
+        return {
+          tarih: trTarih(h.tarih),
+          kisi: kisi ? kisi.ad : "",
+          kisiParseller: kisiParselMetni(h.kisiId),
+          kayitParseli: h.parselNo != null ? String(h.parselNo) : "",
+          tutar: S(h.tutar),
+          aciklama: h.aciklama || ""
+        };
+      });
 
-      // ara toplam
-      s += `<tr>` +
-        `<td colspan="4" style="${cerceve}padding:9px 12px;font-size:15px;font-weight:bold;color:${MUREKKEP};background:${acikArka};text-align:right;">Ara Toplam</td>` +
-        `<td style="${cerceve}padding:9px 12px;font-size:15px;font-weight:bold;color:${vurgu};background:${acikArka};text-align:right;">${kacis(S(aratoplam))}</td>` +
-        `<td style="${cerceve}background:${acikArka};"></td>` +
-        `</tr>`;
-      s += bosSatir;
+    return {
+      tarih: trTarih(bugunISO()),
+      ozet: {
+        gelir: S(gelir),
+        gider: S(gider),
+        bakiye: S(bakiye),
+        bakiyeArtida: bakiye >= 0
+      },
+      bolumler: [
+        { baslik: "GELİRLER", tur: "gelir", aratoplam: S(gelir), pozitif: true, satirlar: bolumVeri("gelir") },
+        { baslik: "GİDERLER", tur: "gider", aratoplam: S(gider), pozitif: false, satirlar: bolumVeri("gider") }
+      ]
     };
-
-    bolum("GELİRLER", "gelir", gelir, ALACAK, ACIK_YESIL);
-    bolum("GİDERLER", "gider", gider, BORC, ACIK_KIRMIZI);
-
-    return `<!DOCTYPE html><html lang="tr"><head><meta charset="utf-8">` +
-      `<title>Defter — ${kacis(trTarih(bugunISO()))}</title>` +
-      `<style>` +
-      `@page { size: A4; margin: 14mm; }` +
-      `body { margin: 0; background: #FFFFFF; }` +
-      `table { width: 100%; }` +
-      `tr { page-break-inside: avoid; }` +
-      `</style></head>` +
-      `<body><table style="border-collapse:collapse;font-family:Arial,sans-serif;">` +
-      s + `</table></body></html>`;
   }
 
   return {
@@ -398,7 +349,7 @@ const Store = (() => {
     parseller, parselSahibi, kisiParselleri, parselAta,
     kisiEkle, kisiSil,
     topluGiderEkle, topluGelirEkle, kasaEkle, kasaGuncelle, kasaSil, kasaSonucSil,
-    kisiGeriAl, kasaGeriAl, csvUret, pdfUret,
+    kisiGeriAl, kasaGeriAl, csvUret, pdfVeri,
     degisimDinle, disYukle, ham
   };
 })();

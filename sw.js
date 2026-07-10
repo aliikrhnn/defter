@@ -6,12 +6,14 @@
    ===================================================================== */
 "use strict";
 
-const SURUM = "defter-sw-v23";
+const SURUM = "defter-sw-v24";
 const VARLIKLAR = [
   "./",
   "index.html",
   "giris.html",
   "css/style.css",
+  "js/vendor/jspdf.umd.min.js",
+  "js/vendor/roboto-font.js",
   "js/store.js",
   "js/bulut.js",
   "js/auth.js",

@@ -56,6 +56,135 @@
     if (fn) fn();
   });
 
+  /* ---------- PDF dışa aktarma (jsPDF, doğrudan indirme) ----------
+     Gömülü Roboto fontu Türkçe (ş, ğ, İ, ı) verir; yazdırma diyaloğu YOK.
+     Renkler defter mürekkebi: yeşil=gelir, kırmızı=gider. */
+  const PDF_RENK = {
+    murekkep: [26, 28, 30], soluk: [92, 96, 100], cizgi: [201, 198, 190],
+    alacak: [30, 110, 78], borc: [179, 55, 43],
+    acikYesil: [234, 243, 238], acikKirmizi: [247, 234, 232], beyaz: [255, 255, 255]
+  };
+  let fontYazildi = false;
+
+  function pdfIndir(veri) {
+    if (!window.jspdf || !window.jspdf.jsPDF || !window.RobotoTTF) {
+      throw new Error("jsPDF/font yüklenmedi");
+    }
+    const doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" });
+    if (!fontYazildi) {
+      doc.addFileToVFS("Roboto-Regular.ttf", window.RobotoTTF);
+      doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
+      fontYazildi = true;
+    }
+    doc.setFont("Roboto", "normal");
+
+    const sayfaG = doc.internal.pageSize.getWidth();
+    const sayfaY = doc.internal.pageSize.getHeight();
+    const kenar = 14, altSinir = sayfaY - 14;
+    let y = kenar;
+    const yeniSayfa = () => { doc.addPage(); doc.setFont("Roboto", "normal"); y = kenar; };
+    const yerAc = h => { if (y + h > altSinir) yeniSayfa(); };
+
+    // başlık
+    doc.setFontSize(20); doc.setTextColor(...PDF_RENK.murekkep);
+    doc.text("DEFTER — " + veri.tarih, kenar, y + 6); y += 12;
+
+    // özet kutusu
+    const ozetSatir = (etiket, deger, renk) => {
+      yerAc(11);
+      doc.setDrawColor(...PDF_RENK.cizgi); doc.setFillColor(...PDF_RENK.beyaz);
+      doc.rect(kenar, y, sayfaG - 2 * kenar, 10, "FD");
+      doc.setFontSize(13); doc.setTextColor(...PDF_RENK.murekkep);
+      doc.text(etiket, kenar + 3, y + 6.6);
+      doc.setTextColor(...renk);
+      doc.text(deger, sayfaG - kenar - 3, y + 6.6, { align: "right" });
+      y += 10;
+    };
+    ozetSatir("Toplam Gelir", veri.ozet.gelir, PDF_RENK.alacak);
+    ozetSatir("Toplam Gider", veri.ozet.gider, PDF_RENK.borc);
+    ozetSatir("Kasa Bakiyesi", veri.ozet.bakiye,
+      veri.ozet.bakiyeArtida ? PDF_RENK.alacak : PDF_RENK.borc);
+    y += 6;
+
+    // sütun düzeni: Tarih, Kişi, K.Parseller, Kayıt P., Tutar, Açıklama
+    const genislik = sayfaG - 2 * kenar;
+    const oran = [0.12, 0.20, 0.16, 0.12, 0.16, 0.24];
+    const kol = oran.map(o => o * genislik);
+    // kümülatif sütun X konumları
+    let acc = kenar; const X = kol.map(w => { const x = acc; acc += w; return x; });
+
+    const hucreMetin = (metin, x, w, cy, hiza) => {
+      const yazi = doc.splitTextToSize(String(metin || ""), w - 4);
+      const tx = hiza === "right" ? x + w - 2 : (hiza === "center" ? x + w / 2 : x + 2);
+      doc.text(yazi, tx, cy, { align: hiza === "right" ? "right" : (hiza === "center" ? "center" : "left") });
+      return yazi.length;
+    };
+    const satirYuk = satirlar => {
+      let m = 1;
+      for (let i = 0; i < satirlar.length; i++) {
+        m = Math.max(m, doc.splitTextToSize(String(satirlar[i] || ""), kol[i] - 4).length);
+      }
+      return Math.max(8, 4 + m * 4.6);
+    };
+
+    const bolumCiz = b => {
+      const vurgu = b.pozitif ? PDF_RENK.alacak : PDF_RENK.borc;
+      const acik = b.pozitif ? PDF_RENK.acikYesil : PDF_RENK.acikKirmizi;
+
+      // renkli şerit başlık
+      yerAc(11);
+      doc.setFillColor(...vurgu);
+      doc.rect(kenar, y, genislik, 9, "F");
+      doc.setFontSize(12); doc.setTextColor(...PDF_RENK.beyaz);
+      doc.text(b.baslik + " — " + b.satirlar.length + " kayıt", kenar + 3, y + 6);
+      y += 9;
+
+      // sütun başlıkları
+      const basliklar = ["Tarih", "Kişi", "Kişinin Parselleri", "Kayıt Parseli", "Tutar", "Açıklama"];
+      const hizalar = ["left", "left", "center", "center", "right", "left"];
+      yerAc(8);
+      doc.setFillColor(...acik); doc.setDrawColor(...PDF_RENK.cizgi);
+      doc.rect(kenar, y, genislik, 8, "FD");
+      doc.setFontSize(9.5); doc.setTextColor(...PDF_RENK.murekkep);
+      for (let i = 0; i < 6; i++) hucreMetin(basliklar[i], X[i], kol[i], y + 5.4, hizalar[i]);
+      y += 8;
+
+      // satırlar
+      doc.setFontSize(10);
+      for (const r of b.satirlar) {
+        const alan = [r.tarih, r.kisi, r.kisiParseller, r.kayitParseli, r.tutar, r.aciklama];
+        const h = satirYuk(alan);
+        yerAc(h);
+        doc.setDrawColor(...PDF_RENK.cizgi);
+        doc.rect(kenar, y, genislik, h, "S");
+        for (let i = 0; i < 6; i++) doc.line(X[i], y, X[i], y + h);
+        const cy = y + 5;
+        doc.setTextColor(...PDF_RENK.murekkep); hucreMetin(alan[0], X[0], kol[0], cy, "left");
+        doc.setTextColor(...PDF_RENK.murekkep); hucreMetin(alan[1], X[1], kol[1], cy, "left");
+        doc.setTextColor(...PDF_RENK.soluk); hucreMetin(alan[2], X[2], kol[2], cy, "center");
+        doc.setTextColor(...PDF_RENK.soluk); hucreMetin(alan[3], X[3], kol[3], cy, "center");
+        doc.setTextColor(...vurgu); hucreMetin(alan[4], X[4], kol[4], cy, "right");
+        doc.setTextColor(...PDF_RENK.murekkep); hucreMetin(alan[5], X[5], kol[5], cy, "left");
+        y += h;
+      }
+
+      // ara toplam
+      yerAc(8);
+      doc.setFillColor(...acik); doc.setDrawColor(...PDF_RENK.cizgi);
+      doc.rect(kenar, y, genislik, 8, "FD");
+      doc.setFontSize(10.5); doc.setTextColor(...PDF_RENK.murekkep);
+      doc.text("Ara Toplam", X[4] + kol[4] - 2, y + 5.4, { align: "right" });
+      doc.setTextColor(...vurgu);
+      doc.text(b.aratoplam, X[5] + kol[5] - 2, y + 5.4, { align: "right" });
+      y += 8 + 6;
+    };
+
+    veri.bolumler.forEach(bolumCiz);
+
+    doc.save("defter-" + veri.tarih.replace(/\./g, "-") + ".pdf");
+    bildir("PDF indirildi.");
+  }
+
   /* ---------- Bulut senkronu ----------
      Yerel localStorage önbellektir; her değişiklik 600ms sonra buluta
      itilir (son yazan kazanır), açılışta ve sekme öne gelince çekilir. */
@@ -556,29 +685,11 @@
     });
   });
   $("#csvBtn").addEventListener("click", () => {
-    // Gizli iframe'e yaz, yazdırma diyaloğunu aç — "PDF olarak kaydet" PDF verir
-    const html = Store.pdfUret();
-    const eski = document.getElementById("pdfCerceve");
-    if (eski) eski.remove();
-    const f = document.createElement("iframe");
-    f.id = "pdfCerceve";
-    f.style.position = "fixed";
-    f.style.right = "0";
-    f.style.bottom = "0";
-    f.style.width = "0";
-    f.style.height = "0";
-    f.style.border = "0";
-    f.setAttribute("aria-hidden", "true");
-    document.body.appendChild(f);
-    f.contentDocument.open();
-    f.contentDocument.write(html);
-    f.contentDocument.close();
-    // içerik yerleşsin diye bir kare bekle, sonra yazdır
-    requestAnimationFrame(() => {
-      f.contentWindow.focus();
-      f.contentWindow.print();
-    });
-    bildir("Yazdırma penceresinde “PDF olarak kaydet” seçin.");
+    try {
+      pdfIndir(Store.pdfVeri());
+    } catch (e) {
+      bildir("PDF oluşturulamadı. Bağlantıyı kontrol edip tekrar deneyin.");
+    }
   });
   $("#aramaKutu").addEventListener("input", e => {
     durum.arama = e.target.value;

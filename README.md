@@ -1,65 +1,63 @@
 # Defter
 
-Kişisel borç & alacak takip uygulaması. Tek kullanıcı, mobil öncelikli, bağımlılıksız vanilla HTML/CSS/JS.
+A personal debt and receivable ledger. Who owes you, what you owe, and what is left after
+each partial payment — mobile-first, offline-capable, and written in vanilla HTML, CSS and
+JavaScript with no build step and no framework.
 
-## Çalıştırma
+*Defter* is Turkish for the paper ledger a shopkeeper keeps under the counter. This is
+that, with the arithmetic done for you.
 
-Sunucu gerekmez — `index.html`'i tarayıcıda aç, yeter.
-Geliştirme sırasında canlı sunucu istersen:
+## Features
+
+- People and their running balance, both directions
+- Transactions with partial payments, and a full history per person
+- Works offline — `localStorage` is the working copy, the cloud is the sync target
+- Cross-device sync through Supabase: every change is pushed, and pulled on load and on
+  tab focus (last write wins)
+- Installable as a PWA, with a service worker and web manifest
+- Undo, and a versioned local schema that migrates forward on upgrade
+
+## Architecture
+
+```
+index.html              Ledger view, person detail, dialogs
+giris.html              Login
+css/style.css           Design tokens, components, animations
+js/store.js             Data layer — localStorage, versioned schema, undo
+js/                     Views, sync, auth
+sw.js                   Service worker
+manifest.webmanifest    PWA manifest
+```
+
+**Local first, cloud second.** Writes land in `localStorage` immediately and the UI never
+waits on the network. Sync runs afterwards; when the device is offline, changes queue and
+flush on reconnect. Users on a phone with poor signal should not see a spinner to record
+that someone paid back 200 lira.
+
+**No passwords in the client.** Authentication is Supabase Auth — passwords are hashed
+server-side, and usernames map to internal email addresses. The login screen uses
+`crypto.subtle`, which requires `file://`, `localhost` or HTTPS.
+
+**Zero dependencies.** No framework, no bundler, no `node_modules`. The whole application
+is files a browser can open, which is also why it still works when a CDN does not.
+
+## Running it
+
+Open `index.html` in a browser. That is genuinely all.
+
+For a local server during development:
 
 ```bash
 npx serve .
-# veya
+# or
 python3 -m http.server 8000
 ```
 
-> Not: Giriş ekranı `crypto.subtle` kullanır; bu API `file://`, `localhost` ve `https` üzerinde çalışır. Uzak bir sunucuya koyacaksan HTTPS şart.
+## Deployment
 
-## Giriş ve senkron
+Static hosting on Vercel — see `vercel.json`. HTTPS is required for `crypto.subtle` and
+for the service worker.
 
-Kimlik doğrulama **Supabase Auth** iledir — şifre kodda tutulmaz, sunucuda bcrypt ile
-saklanır. Kullanıcı adı e-postaya eşlenir (`muratozh` → `muratozh@defter.alegstudio.com`).
-Şifre değiştirmek için: Supabase Dashboard → Authentication → Users → kullanıcıyı seç →
-"Reset password" (ya da SQL ile `auth.users` üzerinden).
+## Licence
 
-Defter verisi cihazlar arasında senkronize edilir: localStorage önbellektir, her
-değişiklik buluta itilir, açılışta ve sekme öne gelince buluttan çekilir
-(son yazan kazanır). Çevrimdışıyken yerelde kaydedilir, bağlantı gelince gönderilir.
-
-## Yapı
-
-```
-index.html           Defter (ana liste / kişi detayı) + form dialogları — giriş gerektirir
-giris.html           Giriş sayfası (başarılı girişte deftere yönlendirir)
-css/style.css        Token sistemi + bileşen stilleri + animasyonlar
-js/store.js          Veri katmanı (localStorage, sürümlü şema, geri al)
-js/auth.js           Giriş kapısı
-js/ui.js             Render fonksiyonları
-js/giris.js          Giriş sayfası mantığı
-js/app.js            Olaylar, görünüm geçişleri, bildirim/geri al, başlatma
-sw.js                Çevrimdışı önbellek (PWA)
-manifest.webmanifest PWA manifest'i
-icon.svg             Favicon / uygulama ikonu
-vercel.json          Yayın güvenlik başlıkları
-```
-
-## Yayın (defter.alegstudio.com)
-
-Statik sitedir, build adımı yoktur. Vercel ile:
-
-```bash
-vercel --prod
-```
-
-Sonra Vercel projesinin **Settings → Domains** bölümüne `defter.alegstudio.com` ekle.
-`alegstudio.com` DNS'i Vercel'deyse kayıt otomatik oluşur; değilse
-`defter` adına `cname.vercel-dns.com` hedefli bir CNAME kaydı ekle.
-
-> Veriler tarayıcının localStorage'ında tutulur — sunucuya hiçbir veri gitmez,
-> yedek almak için "Dışa aktar (CSV)" düğmesini kullan.
-
-## Geliştirme
-
-Tasarım dili, token tablosu, WCAG kuralları ve yol haritası **`CLAUDE.md`** dosyasındadır.
-Claude Code bu projede çalışırken o dosyayı otomatik okur — yeni özellikler oradaki
-kurallar içinde kalmalıdır.
+Not open source. Published for review; all rights reserved.
